@@ -1,0 +1,31 @@
+---
+title: "Simulation Planing"
+author: "Timothee Bonnet"
+date: "18/06/2021"
+output: html_document
+---
+
+
+## Reproduce Seixas et al.
+
+
+
+## Strict Swamping
+
+Starting from a large grid with a small taxon 2.
+
+```{r}
+
+for (i in 1:1)
+{
+  init_folder(homedir = "Simulations/StrictSwamping", focaldir = paste0("StrictSwamping_", i))
+  write_full_param()
+}
+
+```
+
+
+## Relaxed Swamping
+
+## Relaxed Swamping with alterations?
+
