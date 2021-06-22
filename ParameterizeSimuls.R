@@ -3,6 +3,17 @@ init_folder <- function(homedir="Simulations", focaldir = "test/",
 {
   focaldir <- gsub(focaldir, pattern = "/", replacement = "")
   
+  spldir <- unlist(strsplit(homedir, split = "/"))
+  currentpath <- "."
+  for (i in 1:length(spldir))
+  {
+    if (! spldir[i] %in% list.files(path = currentpath , all.files = TRUE))
+      {
+        system(command = paste0("mkdir ", paste0(currentpath, "/", spldir[i])))
+    }
+    currentpath <- paste0(currentpath, "/", spldir[i])
+  }
+  
   if(substr(x = homedir, start = nchar(homedir), stop=nchar(homedir))=="/")
     {
     homedir <- substr(x = homedir, start = 1, stop=nchar(homedir)-1)
@@ -40,7 +51,7 @@ write_full_param <- function(homedir="Simulations", focaldir = "test/",
   sink(file = paste0(homedir, "/", focaldir, "/AllForward.txt"), append = FALSE)
   
   cat("%%%Demographic parameters%%%", sep = "\n")
-  cat(paste0("demesize=", demesize, "//number of individuals"), sep = "\n")
+  cat(paste0("demesize=", demesize, " //number in individuals"), sep = "\n")
   cat(paste0("dimx=", dimx), sep = "\n")
   cat(paste0("dimy=", dimy), sep = "\n")
   cat(paste0("Xlimit=", Xlimit, "//doit etre egal a dimX si un seul habitat"), sep = "\n")
@@ -87,7 +98,7 @@ write_full_param <- function(homedir="Simulations", focaldir = "test/",
     cat(paste0("RunNumber=", RunNumber), sep = "\n")
     cat(paste0("MigRatesCorrection=true"), sep = "\n")
     cat(paste0("Pause=Final"), sep = "\n")
-    cat(paste0("LowHybridBound=", LowHybridBound, "//ATTENTION, en cas d'invasion, penser a regler"), sep = "\n")
+    cat(paste0("LowHybridBound=", LowHybridBound, " //ATTENTION, en cas d'invasion, penser a regler"), sep = "\n")
     cat(paste0("HighHybridBound=", HighHybridBound), sep = "\n")
     cat(paste0("SamplingSeed=", ifelse(is.null(seed), sample(1:2^15, 1), seed)), sep = "\n")
 
@@ -95,12 +106,38 @@ write_full_param <- function(homedir="Simulations", focaldir = "test/",
     cat(paste0("WriteIdMatrix=", WriteIdMatrix), sep = "\n")
     cat(paste0("WriteIdentitiesProba=", WriteIdentitiesProba), sep = "\n")
     cat(paste0("WriteFstHe=", WriteFstHe), sep = "\n")
-    cat(paste0("WriteGenepopFile=", WriteGenepopFile, "//pop=demes"), sep = "\n")
-    cat(paste0("WriteGenepopIntrog=", WriteGenepopIntrog, "//pop=taxa"), sep = "\n")
-    cat(paste0("WriteGenepopOrigin=", WriteGenepopOrigin, "//pop= deme, alleles=taxa of origin"), sep = "\n")
+    cat(paste0("WriteGenepopFile=", WriteGenepopFile, " //pop=demes"), sep = "\n")
+    cat(paste0("WriteGenepopIntrog=", WriteGenepopIntrog, " //pop=taxa"), sep = "\n")
+    cat(paste0("WriteGenepopOrigin=", WriteGenepopOrigin, " //pop= deme, alleles=taxa of origin"), sep = "\n")
     cat(paste0("WriteGenepopAlsoPreContact=", WriteGenepopAlsoPreContact), sep = "\n")
     cat(paste0("WriteIntrogProfile=", WriteIntrogProfile), sep = "\n")
     cat(paste0("WriteIntrogStats=", WriteIntrogStats), sep = "\n")
 
   sink()
+}
+
+
+qsub_gadi <- function(jobdir = "Simulations/test/", gsubfile = "gadi_file")
+{
+  if(substr(x = jobdir, start = nchar(jobdir), stop=nchar(jobdir))!="/")
+  {
+    jobdir <- paste0(jobdir, "/")
+  }
+  
+  fil <- paste0(jobdir, gsubfile)
+  write(x = "#!/bin/bash", file = fil, append = FALSE)
+  write(x = " #PBS -P fu17", file = fil, append = TRUE)
+  write(x = " #PBS -q normal", file = fil, append = TRUE)
+  write(x = " #PBS -l walltime=48:00:00", file = fil, append = TRUE)
+  write(x = " #PBS -l mem=8GB", file = fil, append = TRUE)
+  write(x = " #PBS -l ncpus=1", file = fil, append = TRUE)
+  write(x = " #PBS -M timotheebonnetc@gmail.com", file = fil, append = TRUE)
+  write(x = " #PBS -m ae", file = fil, append = TRUE)
+  write(x = " #PBS -l wd", file = fil, append = TRUE)
+  
+  write(x = paste0("./AllForward_V021.exe"), file = fil, append = TRUE)
+  
+  system(command = paste0("chmod a+x ./", fil))
+  system(command = paste0("cd ", jobdir, " ; qsub ./",gsubfile))
+
 }

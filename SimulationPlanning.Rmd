@@ -12,20 +12,46 @@ output: html_document
 
 ## Strict Swamping
 
-Starting from a large grid with a small taxon 2.
+Starting from a large grid with a small taxon 2. Taxon 2 is forbidden in area 1 to keep 
 
-```{r}
+```{r, eval=FALSE}
 
 for (i in 1:1)
 {
   init_folder(homedir = "Simulations/StrictSwamping", focaldir = paste0("StrictSwamping_", i))
-  write_full_param()
+  write_full_param(homedir = "Simulations/StrictSwamping", focaldir = paste0("StrictSwamping_", i),
+                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 0.1, IndMeanSample = 10,
+                   dispmax = 5,  mFemale =  c(0.0001, 0.0001), Swamping = "true", RunNumber = 100, LowHybridBound=50)
+  qsub_gadi(jobdir =paste0("Simulations/StrictSwamping/StrictSwamping_",i), gsubfile = paste0("gadi_StrictSwamping_",i))
 }
 
 ```
 
 
 ## Relaxed Swamping
+
+Swamping is not strict because taxon 2 can enter habitat 1. Female migration rate varies from very low to normal (always the same for both taxa).
+
+
+```{r, eval=FALSE}
+mFemale <- list(c(0.00001, 0.00001),
+                c(0.0001, 0.0001),
+                c(0.001, 0.001),
+                c(0.01, 0.01),
+                c(0.1, 0.1))
+
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/RelaxSwamping", focaldir = paste0("RelaxSwamping_", i))
+  write_full_param(homedir = "Simulations/RelaxSwamping", focaldir = paste0("RelaxSwamping_", i),
+                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 0.1, IndMeanSample = 10,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=50)
+  qsub_gadi(jobdir =paste0("Simulations/RelaxSwamping/RelaxSwamping_",i), gsubfile = paste0("gadi_RelaxSwamping_",i))
+}
+
+```
 
 ## Relaxed Swamping with alterations?
 
