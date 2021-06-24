@@ -5,8 +5,53 @@ date: "18/06/2021"
 output: html_document
 ---
 
+```{r}
+library(tidyverse)
+library(patchwork)
+```
+
 
 ## Reproduce Seixas et al.
+
+In this section we will simulate biological invasions with variable sex-taxon specific migration rates. 
+We will quantify introgression within simulation sets, but also across simulation sets, combining measures of mitochondrial and autosomal introgression from sets with different migration rates.
+
+
+```{r}
+
+
+mFemale <- list(c(0.000001, 0.000001),
+                c(0.00001, 0.00001),
+                c(0.0001, 0.0001),
+                c(0.001, 0.001),
+                c(0.01, 0.01),
+                c(0.1, 0.1),
+                c(0.1, 0.000001),
+                c(0.1, 0.00001),
+                c(0.1, 0.0001),
+                c(0.1, 0.001),
+                c(0.1, 0.01),
+                c(0.000001, 0.1),
+                c(0.00001, 0.1),
+                c(0.0001, 0.1),
+                c(0.001, 0.1),
+                c(0.01, 0.1))
+
+
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/InvasionHare", focaldir = paste0("InvasionHare_", i))
+  write_full_param(homedir = "Simulations/InvasionHare", focaldir = paste0("InvasionHare_", i),
+                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 25, 
+                   HabitatSlideBegin=1, HabitatSlideEnd=26, HabitatSlideDepth=25,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/InvasionHare/InvasionHare_",i), gsubfile = paste0("gadi_InvasionHare_",i))
+}
+
+```
+
 
 
 
@@ -16,17 +61,46 @@ Starting from a large grid with a small taxon 2. Taxon 2 is forbidden in area 1 
 
 ```{r, eval=FALSE}
 
-for (i in 1:1)
+mFemale <- list(c(0.000001, 0.000001),
+                c(0.00001, 0.00001),
+                c(0.0001, 0.0001),
+                c(0.001, 0.001),
+                c(0.01, 0.01),
+                c(0.1, 0.1))
+
+
+for (i in 1:length(mFemale))
 {
   init_folder(homedir = "Simulations/StrictSwamping", focaldir = paste0("StrictSwamping_", i))
   write_full_param(homedir = "Simulations/StrictSwamping", focaldir = paste0("StrictSwamping_", i),
                    demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
-                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 0.1, IndMeanSample = 10,
-                   dispmax = 5,  mFemale =  c(0.0001, 0.0001), Swamping = "true", RunNumber = 100, LowHybridBound=50)
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "true", RunNumber = 100, LowHybridBound=50,
+                   WritePeriod=100)
   qsub_gadi(jobdir =paste0("Simulations/StrictSwamping/StrictSwamping_",i), gsubfile = paste0("gadi_StrictSwamping_",i))
 }
 
 ```
+
+```{r}
+introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt", header = T)
+habitat2 <- introgprofile %>% filter(x>45)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + geom_smooth(alpha=0)+ylim(0,1)
+
+ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
+  geom_jitter(width = 0.2, height = 0) +
+  geom_smooth(alpha=0) + labs(title="Discordance")+ylim(-1,1)+
+    geom_hline(yintercept = 0.8, linetype="dashed")
+
+
+```
+
 
 
 ## Relaxed Swamping
@@ -35,7 +109,8 @@ Swamping is not strict because taxon 2 can enter habitat 1. Female migration rat
 
 
 ```{r, eval=FALSE}
-mFemale <- list(c(0.00001, 0.00001),
+mFemale <- list(c(0.000001, 0.000001),
+                c(0.00001, 0.00001),
                 c(0.0001, 0.0001),
                 c(0.001, 0.001),
                 c(0.01, 0.01),
@@ -47,9 +122,38 @@ for (i in 1:length(mFemale))
   write_full_param(homedir = "Simulations/RelaxSwamping", focaldir = paste0("RelaxSwamping_", i),
                    demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
                    generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 0.1, IndMeanSample = 10,
-                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=50)
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=50,
+                                      WritePeriod=100)
   qsub_gadi(jobdir =paste0("Simulations/RelaxSwamping/RelaxSwamping_",i), gsubfile = paste0("gadi_RelaxSwamping_",i))
 }
+
+```
+
+
+```{r}
+
+discplots <- list()
+
+for(i in 2:5)
+{
+introgprofile <- read.table(file = paste0("Simulations/RelaxSwamping/RelaxSwamping_", i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>45)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + geom_smooth(alpha=0)+ylim(0,1)
+
+discplots[[i-1]] <- ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
+  geom_jitter(width = 0.2, height = 0) +
+  geom_smooth(alpha=0) + labs(title="Discordance")+ylim(-1,1)+
+    geom_hline(yintercept = 0.8, linetype="dashed")
+}
+
+discplots[[1]] + discplots[[2]] +discplots[[3]] + discplots[[4]] 
 
 ```
 

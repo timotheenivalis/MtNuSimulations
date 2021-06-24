@@ -1,5 +1,5 @@
 init_folder <- function(homedir="Simulations", focaldir = "test/", 
-                        exefile="AllForward_V021.exe")
+                        exefile="AllForward_V022.exe")
 {
   focaldir <- gsub(focaldir, pattern = "/", replacement = "")
   
@@ -33,14 +33,14 @@ init_folder <- function(homedir="Simulations", focaldir = "test/",
 write_full_param <- function(homedir="Simulations", focaldir = "test/",
                              demesize=6, dimx=10, dimy=10, Xlimit=5,
          HabitatSlideBegin=0, HabitatSlideEnd=0, HabitatSlideDepth=0, 
-         generationnumber=10, AllopatryLast=8000, DemeSamplingRatio=1, IndMeanSample=2, 
+         generationnumber=10, AllopatryLast=8000, DemeSamplingRatio=1, IndMeanSample=10, 
          dispmax=5, mFemale=0.1, geomFemale=0.1, mMale=0.1, geomMale=0.1, EdgeEffects="true",
          Swamping = "false", fitnessynormal=1, fitnessmaladaptation=c(0.9, 1.0), 
          fitnesshybridfemale=c(0.9,1.0), fitnesshybridmale=c(0.9, 1.0), fitnessMaladaptMt=1.0, 
          RunNumber = 1, LowHybridBound = 10, HighHybridBound= 0, seed = NULL, 
          WriteIdMatrix="false", WriteIdentitiesProba="false", WriteFstHe="false", 
          WriteGenepopFile="false", WriteGenepopIntrog="false", WriteGenepopOrigin="false",
-         WriteGenepopAlsoPreContact="false", WriteIntrogProfile="true", WriteIntrogStats="true")
+         WriteGenepopAlsoPreContact="false", WriteIntrogProfile="true", WriteIntrogStats="true", WritePeriod = -1)
 {
   focaldir <- gsub(focaldir, pattern = "/", replacement = "")
   
@@ -112,6 +112,7 @@ write_full_param <- function(homedir="Simulations", focaldir = "test/",
     cat(paste0("WriteGenepopAlsoPreContact=", WriteGenepopAlsoPreContact), sep = "\n")
     cat(paste0("WriteIntrogProfile=", WriteIntrogProfile), sep = "\n")
     cat(paste0("WriteIntrogStats=", WriteIntrogStats), sep = "\n")
+    cat(paste0("WritePeriod=", WritePeriod), sep = "\n")
 
   sink()
 }
@@ -135,7 +136,7 @@ qsub_gadi <- function(jobdir = "Simulations/test/", gsubfile = "gadi_file")
   write(x = " #PBS -m ae", file = fil, append = TRUE)
   write(x = " #PBS -l wd", file = fil, append = TRUE)
   
-  write(x = paste0("./AllForward_V021.exe"), file = fil, append = TRUE)
+  write(x = paste0("./AllForward_V022.exe"), file = fil, append = TRUE)
   
   system(command = paste0("chmod a+x ./", fil))
   system(command = paste0("cd ", jobdir, " ; qsub ./",gsubfile))
