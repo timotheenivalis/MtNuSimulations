@@ -7,7 +7,27 @@ output: html_document
 
 ```{r}
 library(tidyverse)
-library(patchwork)
+library(gganimate)
+```
+
+
+## Try very deep simul
+
+```{r}
+mFemale <- list(c(0.000001, 0.000001),
+                c(0.1, 0.1))
+
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/LongTry", focaldir = paste0("LongTry_", i))
+  write_full_param(homedir = "Simulations/LongTry", focaldir = paste0("LongTry_", i),
+                   demesize = 20, dimx = 300, dimy = 10, Xlimit = 270, 
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "true", RunNumber = 100, 
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/LongTry/LongTry_",i), gsubfile = paste0("gadi_LongTry_",i))
+}
+
 ```
 
 
@@ -82,21 +102,58 @@ for (i in 1:length(mFemale))
 
 ```
 
+
 ```{r}
-introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt", header = T)
-habitat2 <- introgprofile %>% filter(x>45)
+introgprofile <- read.table(file = "Simulations/test/IntrogProfile2.txt", header = T)
+habitat2 <- introgprofile %>% filter(x>1)
 habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
 meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
                            names_to = "marker",
                            values_to = "invaderproportion")
 
 ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + geom_smooth(alpha=0)+ylim(0,1)
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
+```
+
+```{r}
+introgprofile <- read.table(file = "Simulations/test/IntrogProfile4.txt", header = T)
+habitat2 <- introgprofile %>% filter(x>1)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
+```
+
+```{r}
+introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt", header = T)
+habitat2 <- introgprofile %>% filter(x>1)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+
+plot(habitat2$MeanA, habitat2$Year)
+
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
 
 ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
   geom_jitter(width = 0.2, height = 0) +
-  geom_smooth(alpha=0) + labs(title="Discordance")+ylim(-1,1)+
-    geom_hline(yintercept = 0.8, linetype="dashed")
+  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Year: {frame_time}')+ 
+  transition_time(Year)+
+  ease_aes('linear')+
+    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
+  ease_aes('linear')
 
 
 ```
@@ -121,8 +178,8 @@ for (i in 1:length(mFemale))
   init_folder(homedir = "Simulations/RelaxSwamping", focaldir = paste0("RelaxSwamping_", i))
   write_full_param(homedir = "Simulations/RelaxSwamping", focaldir = paste0("RelaxSwamping_", i),
                    demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
-                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 0.1, IndMeanSample = 10,
-                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=50,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=51,
                                       WritePeriod=100)
   qsub_gadi(jobdir =paste0("Simulations/RelaxSwamping/RelaxSwamping_",i), gsubfile = paste0("gadi_RelaxSwamping_",i))
 }
