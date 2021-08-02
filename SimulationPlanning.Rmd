@@ -1,9 +1,20 @@
 ---
 title: "Simulation Planing"
 author: "Timothee Bonnet"
-date: "18/06/2021"
-output: html_document
+date: "02/08/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
 ---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
 
 ```{r}
 library(tidyverse)
@@ -11,77 +22,19 @@ library(gganimate)
 ```
 
 
-## Try very deep simul
-
-```{r}
-mFemale <- list(c(0.000001, 0.000001),
-                c(0.1, 0.1))
-
-for (i in 1:length(mFemale))
-{
-  init_folder(homedir = "Simulations/LongTry", focaldir = paste0("LongTry_", i))
-  write_full_param(homedir = "Simulations/LongTry", focaldir = paste0("LongTry_", i),
-                   demesize = 20, dimx = 300, dimy = 10, Xlimit = 270, 
-                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
-                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "true", RunNumber = 100, 
-                   WritePeriod=100)
-  qsub_gadi(jobdir =paste0("Simulations/LongTry/LongTry_",i), gsubfile = paste0("gadi_LongTry_",i))
-}
-
-```
-
-
-## Reproduce Seixas et al.
-
-In this section we will simulate biological invasions with variable sex-taxon specific migration rates. 
-We will quantify introgression within simulation sets, but also across simulation sets, combining measures of mitochondrial and autosomal introgression from sets with different migration rates.
-
-
-```{r}
-
-
-mFemale <- list(c(0.000001, 0.000001),
-                c(0.00001, 0.00001),
-                c(0.0001, 0.0001),
-                c(0.001, 0.001),
-                c(0.01, 0.01),
-                c(0.1, 0.1),
-                c(0.1, 0.000001),
-                c(0.1, 0.00001),
-                c(0.1, 0.0001),
-                c(0.1, 0.001),
-                c(0.1, 0.01),
-                c(0.000001, 0.1),
-                c(0.00001, 0.1),
-                c(0.0001, 0.1),
-                c(0.001, 0.1),
-                c(0.01, 0.1))
-
-
-for (i in 1:length(mFemale))
-{
-  init_folder(homedir = "Simulations/InvasionHare", focaldir = paste0("InvasionHare_", i))
-  write_full_param(homedir = "Simulations/InvasionHare", focaldir = paste0("InvasionHare_", i),
-                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 25, 
-                   HabitatSlideBegin=1, HabitatSlideEnd=26, HabitatSlideDepth=25,
-                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
-                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=51,
-                   WritePeriod=100)
-  qsub_gadi(jobdir =paste0("Simulations/InvasionHare/InvasionHare_",i), gsubfile = paste0("gadi_InvasionHare_",i))
-}
-
-```
-
-
-
 
 ## Strict Swamping
 
 Starting from a large grid with a small taxon 2. Taxon 2 is forbidden in area 1 to keep 
 
+###  Normal size depth
+
 ```{r, eval=FALSE}
 
-mFemale <- list(c(0.000001, 0.000001),
+mFemale <- list(c(0.000000001, 0.000000001),
+                c(0.00000001, 0.00000001),
+                c(0.0000001, 0.0000001),
+                c(0.000001, 0.000001),
                 c(0.00001, 0.00001),
                 c(0.0001, 0.0001),
                 c(0.001, 0.001),
@@ -94,19 +47,27 @@ for (i in 1:length(mFemale))
   init_folder(homedir = "Simulations/StrictSwamping", focaldir = paste0("StrictSwamping_", i))
   write_full_param(homedir = "Simulations/StrictSwamping", focaldir = paste0("StrictSwamping_", i),
                    demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
-                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
                    dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "true", RunNumber = 100, LowHybridBound=50,
                    WritePeriod=100)
   qsub_gadi(jobdir =paste0("Simulations/StrictSwamping/StrictSwamping_",i), gsubfile = paste0("gadi_StrictSwamping_",i))
 }
 
+
 ```
 
 
+#### In depth visualisation of two extreme cases
+
+Results of strict swamping with female migration rate of $10^{-1}$. 
+
+Marker patterns through time:
+
 ```{r}
-introgprofile <- read.table(file = "Simulations/test/IntrogProfile2.txt", header = T)
-habitat2 <- introgprofile %>% filter(x>1)
+introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_9/IntrogProfile.txt", header = T)
+habitat2 <- introgprofile %>% filter(x>0)
 habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+
 meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
                            names_to = "marker",
                            values_to = "invaderproportion")
@@ -117,39 +78,12 @@ ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) +
   ease_aes('linear')
 ```
 
-```{r}
-introgprofile <- read.table(file = "Simulations/test/IntrogProfile4.txt", header = T)
-habitat2 <- introgprofile %>% filter(x>1)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
-```
+And corresponding discordance:
 
 ```{r}
-introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt", header = T)
-habitat2 <- introgprofile %>% filter(x>1)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-
-plot(habitat2$MeanA, habitat2$Year)
-
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
-
 ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
   geom_jitter(width = 0.2, height = 0) +
-  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Year: {frame_time}')+ 
+  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
   transition_time(Year)+
   ease_aes('linear')+
     geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
@@ -158,15 +92,155 @@ ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) +
 
 ```
 
+Results of strict swamping with female migration rate of $10^{-9}$. 
+
+Marker patterns through time:
+
+```{r}
+introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt", header = T)
+habitat2 <- introgprofile %>% filter(x>0)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
+```
+
+And corresponding discordance:
+
+```{r}
+ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
+  geom_jitter(width = 0.2, height = 0) +
+  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
+  transition_time(Year)+
+  ease_aes('linear')+
+    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
+  ease_aes('linear')
+
+
+```
+
+#### General results across parameter space
+
+```{r}
+discordance <- sapply(1:9,
+function(i){
+introgprofile <- read.table(file = paste0("Simulations/StrictSwamping/StrictSwamping_",i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>45, Year==max(Year))
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+mean(habitat2$MeanA - habitat2$LocusMt)
+})
+dat <- data.frame(discordance, female_migration=10^-(9:1))
+ggplot(dat, aes(x=female_migration, y=discordance)) + geom_point() + scale_x_log10()
+
+```
+
+
+Conclusion: There is very little discordance, and only for a short time period, when female migration rates are high, but discordance is massive and long lasting when female migration rates are very low (here $m \leq 10^{-4}$)
+
+
+### Try very deep simul
+
+Not really important for now. It was just a check that the program could cope with huge grids. It looks like a 300 by 10 grid needs 64Go of RAM.
+
+```{r, eval=FALSE}
+source("ParameterizeSimuls.R")
+mFemale <- list(c(0.000001, 0.000001),
+                c(0.1, 0.1),
+                c(1e-009, 1e-009))
+
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/LongTry", focaldir = paste0("LongTry_", i))
+  write_full_param(homedir = "Simulations/LongTry", focaldir = paste0("LongTry_", i),
+                   demesize = 20, dimx = 300, dimy = 10, Xlimit = 270, 
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "true", RunNumber = 100, 
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/LongTry/LongTry_",i), gsubfile = paste0("gadi_LongTry_",i), mem=48)
+}
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+
+dirwork <- "Simulations/LongTry/LongTry_1/"
+#dirwork <- "~/Documents/CanberraPostDoc/Hybridization/MtNuDisc_HarePaper/MtNuSimulations/Simulations/test2"
+data<-read.table(paste(dirwork,"IntrogStats.txt",sep="/"),header=T, skip = 46) 
+profile<-read.table(paste(dirwork,"IntrogProfile.txt",sep="/"),header=T)#, skip = 46) 
+profile$MeanA <- apply(profile[,4:23], 1, mean)
+ggplot(profile, aes(x=x, y=LocusMt)) + geom_point( alpha=0.3) + geom_vline(xintercept = 270) + 
+  geom_point(aes(x=x+0.1, y=MeanA), col="red",  alpha=0.3)+ facet_wrap(~Year+Run) +
+  geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
+
+```
+
+```{r, eval=FALSE, echo=FALSE}
+
+dirwork <- "Simulations/LongTry/LongTry_2/"
+#dirwork <- "~/Documents/CanberraPostDoc/Hybridization/MtNuDisc_HarePaper/MtNuSimulations/Simulations/test2"
+data<-read.table(paste(dirwork,"IntrogStats.txt",sep="/"),header=T, skip = 46) 
+profile<-read.table(paste(dirwork,"IntrogProfile.txt",sep="/"),header=T)#, skip = 46) 
+profile$MeanA <- apply(profile[,4:23], 1, mean)
+ggplot(profile, aes(x=x, y=LocusMt)) + geom_point( alpha=0.3) + geom_vline(xintercept = 270) +
+  geom_point(aes(x=x+0.1, y=MeanA), col="red",  alpha=0.3)+ facet_wrap(~Year+Run) +
+  geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
+
+```
+
+```{r, eval=FALSE, echo=FALSE}
+
+dirwork <- "Simulations/LongTry/LongTry_3/"
+#dirwork <- "~/Documents/CanberraPostDoc/Hybridization/MtNuDisc_HarePaper/MtNuSimulations/Simulations/test2"
+data<-read.table(paste(dirwork,"IntrogStats.txt",sep="/"),header=T, skip = 46) 
+profile<-read.table(paste(dirwork,"IntrogProfile.txt",sep="/"),header=T)#, skip = 46) 
+profile$MeanA <- apply(profile[,4:23], 1, mean)
+ggplot(profile, aes(x=x, y=LocusMt)) + geom_point( alpha=0.3) + geom_vline(xintercept = 270) +
+  geom_point(aes(x=x+0.1, y=MeanA), col="red",  alpha=0.3)+ facet_wrap(~Year+Run) +
+  geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
+
+```
+
 
 
 ## Relaxed Swamping
 
-Swamping is not strict because taxon 2 can enter habitat 1. Female migration rate varies from very low to normal (always the same for both taxa).
+Here swamping is not strict because taxon 2 can enter habitat 1. Female migration rate varies from very low to normal (always the same for both taxa).
 
+<!-- ### Try very deep simul -->
+
+```{r, eval=FALSE, echo=FALSE}
+mFemale <- list(c(0.000001, 0.000001),
+                c(0.1, 0.1),
+                c(1e-009, 1e-009))
+
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/RelaxedLongTry", focaldir = paste0("RelaxedLongTry_", i))
+  write_full_param(homedir = "Simulations/RelaxedLongTry", focaldir = paste0("RelaxedLongTry_", i),
+                   demesize = 20, dimx = 300, dimy = 10, Xlimit = 270, 
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, 
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/RelaxedLongTry/RelaxedLongTry_",i), gsubfile = paste0("gadi_RelaxedLongTry_",i), mem=48)
+}
+
+```
+
+
+###  Normal size depth
 
 ```{r, eval=FALSE}
-mFemale <- list(c(0.000001, 0.000001),
+mFemale <- list(c(0.000000001, 0.000000001),
+                c(0.00000001, 0.00000001),
+                c(0.0000001, 0.0000001),
+                c(0.000001, 0.000001),
                 c(0.00001, 0.00001),
                 c(0.0001, 0.0001),
                 c(0.001, 0.001),
@@ -178,7 +252,7 @@ for (i in 1:length(mFemale))
   init_folder(homedir = "Simulations/RelaxSwamping", focaldir = paste0("RelaxSwamping_", i))
   write_full_param(homedir = "Simulations/RelaxSwamping", focaldir = paste0("RelaxSwamping_", i),
                    demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
-                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 10,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
                    dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=51,
                                       WritePeriod=100)
   qsub_gadi(jobdir =paste0("Simulations/RelaxSwamping/RelaxSwamping_",i), gsubfile = paste0("gadi_RelaxSwamping_",i))
@@ -187,14 +261,15 @@ for (i in 1:length(mFemale))
 ```
 
 
+### Visualising extreme case of low female migration
+
+Results of relaxed swamping with female migration rate of $10^{-9}$. 
+
+Marker patterns through time:
+
 ```{r}
-
-discplots <- list()
-
-for(i in 2:5)
-{
-introgprofile <- read.table(file = paste0("Simulations/RelaxSwamping/RelaxSwamping_", i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>45)
+introgprofile <- read.table(file = "Simulations/RelaxSwamping/RelaxSwamping_1/IntrogProfile.txt", header = T)
+habitat2 <- introgprofile %>% filter(x>0)
 habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
 
 meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
@@ -202,17 +277,299 @@ meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
                            values_to = "invaderproportion")
 
 ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + geom_smooth(alpha=0)+ylim(0,1)
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
+```
 
-discplots[[i-1]] <- ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
+And corresponding discordance:
+
+```{r}
+ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
   geom_jitter(width = 0.2, height = 0) +
-  geom_smooth(alpha=0) + labs(title="Discordance")+ylim(-1,1)+
-    geom_hline(yintercept = 0.8, linetype="dashed")
-}
+  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
+  transition_time(Year)+
+  ease_aes('linear')+
+    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
+  ease_aes('linear')
 
-discplots[[1]] + discplots[[2]] +discplots[[3]] + discplots[[4]] 
 
 ```
 
+Species 2 can enter habitat 1, which creates a shallow cline for autosomal markers, and only moderate mito-nuclear discordance (or just marginally massive based on the old threshold of 80%) in the swamped area.
+
+### General results
+
+```{r}
+discordance <- sapply(1:9,
+function(i){
+introgprofile <- read.table(file = paste0("Simulations/RelaxSwamping/RelaxSwamping_",i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>45, Year==max(Year))
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+mean(habitat2$MeanA - habitat2$LocusMt)
+})
+dat <- data.frame(discordance, female_migration=10^-(9:1))
+ggplot(dat, aes(x=female_migration, y=discordance)) + geom_point() + scale_x_log10() +
+  ylim(min(discordance),1) + geom_hline(yintercept = 0.8, lty=2)
+
+```
+
+Relaxed swamping does not work as well as strict swamping. Discordance can be quite high, but not much more than the 80% threshold. I suspect at equilibrium the proportion of autosomal markers of type 1 will be the introduction frequency, which here is 45/50 = `r 45/50` and that fraction will also be the maximal expected mito-nuclear discordance in the swamped area (the maximum being reached when females do not move at all). 
+
+This result seems rather trivial. A large initial imbalance in the sizes of the two gene pools leads to large introgression final frequencies for markers that move... but not those that do not move.
+
+With "strict swamping", which suggests a somewhat artificial biological process, can you generate more discordance than what is determined by the initial gene pool size.
+
 ## Relaxed Swamping with alterations?
+
+I have not looked into it, but perhaps relaxed swamping combined with other processes could be interesting to explore. 
+
+
+## Similar to Seixas et al. scenario
+
+In this section we will simulate biological invasions with variable sex-taxon specific migration rates. 
+We will quantify introgression within simulation sets, but also across simulation sets, combining measures of mitochondrial and autosomal introgression from sets with different migration rates.
+
+For now we do not attempt to reproduce exactly Seixas et al. simulations, but rather check the properties of invasions with various species-sex-specific migration rates.
+
+
+```{r}
+mFemale <- as.list(split(expand.grid(10^(-c(1,6,9)),10^(-c(1,6,9))), f=1:9))
+
+```
+
+
+```{r, eval=FALSE}
+
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/InvasionHare", focaldir = paste0("InvasionHare_", i))
+  write_full_param(homedir = "Simulations/InvasionHare", focaldir = paste0("InvasionHare_", i),
+                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 25, 
+                   HabitatSlideBegin=1, HabitatSlideEnd=26, HabitatSlideDepth=25,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/InvasionHare/InvasionHare_",i), gsubfile = paste0("gadi_InvasionHare_",i), mem=16)
+}
+
+```
+
+Or is it male migration that matters?
+
+```{r, eval=FALSE}
+mMale <- as.list(split(expand.grid(10^(-c(1,6,9)),10^(-c(1,6,9))), f=1:9))
+
+for (i in 1:length(mMale))
+{
+  init_folder(homedir = "Simulations/InvasionHareMale", focaldir = paste0("InvasionHareMale_", i))
+  write_full_param(homedir = "Simulations/InvasionHareMale", focaldir = paste0("InvasionHareMale_", i),
+                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 25, 
+                   HabitatSlideBegin=1, HabitatSlideEnd=26, HabitatSlideDepth=25,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =10^-9, mMale=mMale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/InvasionHareMale/InvasionHareMale_",i), gsubfile = paste0("gadi_InvasionHareMale_",i), mem=16)
+}
+
+```
+
+
+High female migration rate in both species ($10^{-1}$)
+
+```{r}
+i <- 1
+introgprofile <- read.table(file = paste0("Simulations/InvasionHare/InvasionHare_",i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>30)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+
+habitat2 %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
+  geom_point(aes(x=x+0.1, y=MeanA), col="red")+ facet_wrap(~Run) +
+  geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
+
+
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth(se = FALSE)+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
+```
+
+Low female migration rate in both species ($10^{-9}$)
+
+```{r}
+i <- 9
+introgprofile <- read.table(file = paste0("Simulations/InvasionHare/InvasionHare_",i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>45)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+
+habitat2 %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
+  geom_point(aes(x=x+0.1, y=MeanA), col="red")+ facet_wrap(~Run) +
+  geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
+
+
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth(se = FALSE)+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
+```
+
+
+
+
+
+```{r}
+mFemale <- as.list(split(expand.grid(10^(-c(1,6,9)),10^(-c(1,6,9))), f=1:9))
+
+discordance <- map(.x = 1:9, .f = function(i){
+introgprofile <- read.table(file = paste0("Simulations/InvasionHare/InvasionHare_",i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>45, Year==max(Year))
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+data.frame(i=i, mf1 = unlist(mFemale[[i]][[1]]), mf2=mFemale[[i]][[2]], disc= habitat2$MeanA - habitat2$LocusMt)
+}) %>% reduce(bind_rows)
+
+
+ggplot(discordance, aes(x=mf1, y=disc)) + geom_point() + scale_x_log10() +
+  ylim(min(discordance),1) + geom_hline(yintercept = 0.8, lty=2) + 
+  facet_wrap(~mf2, labeller = labeller(mf2 = 
+    c("0.1" = "Species 2 female m = 0.1",
+      "1e-06" = "Species 2 female m = 1e-06",
+      "1e-09" = "Species 2 female m = 1e-09")) ) + labs(x="Species 1 female m")
+
+```
+
+
+
+```{r}
+mMale <- as.list(split(expand.grid(10^(-c(1,6,9)),10^(-c(1,6,9))), f=1:9))
+
+discordance <- map(.x = 1:9, .f = function(i){
+introgprofile <- read.table(file = paste0("Simulations/InvasionHareMale/InvasionHareMale_",i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>30, Year==max(Year))
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+data.frame(i=i, mm1 = unlist(mMale[[i]][[1]]), mm2=mMale[[i]][[2]], disc= habitat2$MeanA - habitat2$LocusMt)
+}) %>% reduce(bind_rows)
+
+
+ggplot(discordance, aes(x=mm1, y=disc)) + geom_point() + scale_x_log10() +
+  ylim(min(discordance),1) + geom_hline(yintercept = 0.8, lty=2) + 
+  facet_wrap(~mm2, labeller = labeller(mm2 = 
+    c("0.1" = "Species 2 male m = 0.1",
+      "1e-06" = "Species 2 male m = 1e-06",
+      "1e-09" = "Species 2 male m = 1e-09")) ) + labs(x="Species 1 male m")
+
+```
+
+Not very convincing, but let's check what happens for male 1 migrating, male 2 not moving, females not moving:
+
+
+```{r}
+i <- 7
+introgprofile <- read.table(file = paste0("Simulations/InvasionHareMale/InvasionHareMale_",i,"/IntrogProfile.txt"), header = T)
+habitat2 <- introgprofile %>% filter(x>5)
+habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+
+habitat2 %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
+  geom_point(aes(x=x+0.1, y=MeanA), col="red")+ facet_wrap(~Run) +
+  geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
+
+
+meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+
+ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth(se = FALSE)+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear')
+```
+
+It looks like the end result would be 50% autosomal introgression, 100 % mitochondrial, hence a discordance of 50%.
+
+In conclusion, the initial gene pool sizes seem very important.
+
+
+## Try to reproduce Seixas et al.
+
+We need:
+
+* Biological invasion
+* Initial difference in gene pool sizes between the two species (twice as many invaders than residents, so the grid should be split at 2/3)
+* Overall (not sure whether that means on average, or for both species), female migration rate of 0.005 and a male migration rate of 0.035
+* Some control of admixture asymmetry to produce "mitochondrial simulations" and "autosomal simulations"
+
+For that last point we mentionned using species-sex-specific migration rates. I do not see how to get close to Seixas et al.'s simulations that way.
+
+Instead, I will try to use again the mating asymmetry matrix.
+
+Short "Mitochondrial simulations":
+```{r}
+alpha <- 0.025
+beta <- 0.001
+size_mult <- c(1,3,10)
+
+for (i in 1:length(size_mult))
+{
+  init_folder(homedir = "Simulations/Mitoch", focaldir = paste0("Mitoch_", i))
+  write_full_param(homedir = "Simulations/Mitoch", focaldir = paste0("Mitoch_", i),
+                   demesize = 20, dimx = 30*size_mult[i], dimy = 10, Xlimit = 20*size_mult[i],
+                   HabitatSlideBegin=1,
+                   HabitatSlideEnd=11*size_mult[i], HabitatSlideDepth=10*size_mult[i],
+                   generationnumber = 6000, AllopatryLast = 80000, 
+                   DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  0.005, mMale=0.035,
+                   AcceptRates = c(1, beta, beta,
+                                   (alpha+beta)/2, (alpha+beta)/2, (alpha+beta)/2, 
+                                   alpha, alpha, 1),
+                   Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                                      WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/Mitoch/Mitoch_",i),
+            gsubfile = paste0("gadi_Mitoch_",i), mem=8*size_mult[i])
+}
+
+
+```
+
+
+Short "Nuclear simulations":
+In this case we do not model sex-specific migration rates, and matings are symmerical.
+
+```{r}
+alpha <- 0.005
+beta <- 0.005
+size_mult <- c(1,3,10)
+
+for (i in 1:length(size_mult))
+{
+  init_folder(homedir = "Simulations/Nuclear", focaldir = paste0("Nuclear_", i))
+  write_full_param(homedir = "Simulations/Nuclear", focaldir = paste0("Nuclear_", i),
+                   demesize = 20, dimx = 30*size_mult[i], dimy = 10, Xlimit = 20*size_mult[i],
+                   HabitatSlideBegin=1,
+                   HabitatSlideEnd=11*size_mult[i], HabitatSlideDepth=10*size_mult[i],
+                   generationnumber = 6000, AllopatryLast = 80000, 
+                   DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  0.02, mMale=0.02,
+                   AcceptRates = c(1, beta, beta,
+                                   (alpha+beta)/2, (alpha+beta)/2, (alpha+beta)/2, 
+                                   alpha, alpha, 1),
+                   Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                                      WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/Nuclear/Nuclear_",i),
+            gsubfile = paste0("gadi_Nuclear_",i), mem=8*size_mult[i])
+}
+
+```
+
+
+
+
+
+
 

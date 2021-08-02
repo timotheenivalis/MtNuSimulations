@@ -1,5 +1,5 @@
 init_folder <- function(homedir="Simulations", focaldir = "test/", 
-                        exefile="AllForward_V022.exe")
+                        exefile="AllForward_V023.exe")
 {
   focaldir <- gsub(focaldir, pattern = "/", replacement = "")
   
@@ -33,10 +33,11 @@ init_folder <- function(homedir="Simulations", focaldir = "test/",
 write_full_param <- function(homedir="Simulations", focaldir = "test/",
                              demesize=6, dimx=10, dimy=10, Xlimit=5,
          HabitatSlideBegin=0, HabitatSlideEnd=0, HabitatSlideDepth=0, 
-         generationnumber=10, AllopatryLast=8000, DemeSamplingRatio=1, IndMeanSample=10, 
+         generationnumber=10, AllopatryLast=8000, DemeSamplingRatio=1, IndMeanSample=100, 
          dispmax=5, mFemale=0.1, geomFemale=0.1, mMale=0.1, geomMale=0.1, EdgeEffects="true",
          Swamping = "false", FitnessNormal=1, fitnessmaladaptation=c(0.9, 1.0), 
          fitnesshybridfemale=c(0.9,1.0), fitnesshybridmale=c(0.9, 1.0), fitnessMaladaptMt=1.0, 
+         AcceptRates = rep(1, times=9),
          RunNumber = 1, LowHybridBound = 10, HighHybridBound= 0, seed = NULL, 
          WriteIdMatrix="false", WriteIdentitiesProba="false", WriteFstHe="false", 
          WriteGenepopFile="false", WriteGenepopIntrog="false", WriteGenepopOrigin="false",
@@ -85,7 +86,9 @@ write_full_param <- function(homedir="Simulations", focaldir = "test/",
     cat(paste0("fitnessMaladaptMt=", ifelse(fitnessMaladaptMt==1, "1.0", fitnessMaladaptMt),
                "//fitness of the bad strand (habitat 1)"), sep = "\n")
     cat(paste0("HybridNb=", -1, "//-1==Infini"), sep = "\n")
-    cat(paste0("AcceptRates=", 1, ",",1, ",",1, ",",1, ",",1, ",",1, ",",1, ",",1, ",",1), sep = "\n")
+    
+    cat(paste0("AcceptRates=", paste0(AcceptRates, collapse = ", ")), sep = "\n")
+    
     cat(paste0("HomogamyAllLoci=false"), sep = "\n")
     cat(paste0("ChoosyFemale=", 0.5, "//rate of females which starts the couple formation"), sep = "\n")
     
@@ -119,7 +122,9 @@ write_full_param <- function(homedir="Simulations", focaldir = "test/",
 }
 
 
-qsub_gadi <- function(jobdir = "Simulations/test/", gsubfile = "gadi_file")
+qsub_gadi <- function(jobdir = "Simulations/test/",
+                      gsubfile = "gadi_file", mem=8,
+                      exefile="AllForward_V023.exe")
 {
   if(substr(x = jobdir, start = nchar(jobdir), stop=nchar(jobdir))!="/")
   {
@@ -131,13 +136,13 @@ qsub_gadi <- function(jobdir = "Simulations/test/", gsubfile = "gadi_file")
   write(x = " #PBS -P fu17", file = fil, append = TRUE)
   write(x = " #PBS -q normal", file = fil, append = TRUE)
   write(x = " #PBS -l walltime=48:00:00", file = fil, append = TRUE)
-  write(x = " #PBS -l mem=8GB", file = fil, append = TRUE)
+  write(x = paste0(" #PBS -l mem=", mem, "GB"), file = fil, append = TRUE)
   write(x = " #PBS -l ncpus=1", file = fil, append = TRUE)
   write(x = " #PBS -M timotheebonnetc@gmail.com", file = fil, append = TRUE)
   write(x = " #PBS -m ae", file = fil, append = TRUE)
   write(x = " #PBS -l wd", file = fil, append = TRUE)
   
-  write(x = paste0("./AllForward_V022.exe"), file = fil, append = TRUE)
+  write(x = paste0("./", exefile), file = fil, append = TRUE)
   
   system(command = paste0("chmod a+x ./", fil))
   system(command = paste0("cd ", jobdir, " ; qsub ./",gsubfile))
