@@ -21,11 +21,17 @@ library(tidyverse)
 library(gganimate)
 ```
 
+Seixas  & al. 2018 used simulations in SPLATCHE2 to show that strong mito-nuclear discordance could occur as a result of sex-biased dispersal during a biological invasion. Seixas & al. 2018 results somewhat differ from Bonnet & al. 2017, although not as much as the paper claims. There are major issues with the simulations used in Seixas & al. 2018, and those issues probably explain the discrepancies from Bonnet & al. 2017. 
 
+Our proximal goal is to confirm that  Seixas & al. 2018 results are incorrect and to warn other researchers about the shortcomings in their analyses.
+
+Our overarching goal is to once more assess whether sex-biased dispersal can generate a massive mito-nuclear discordance, in particular in the context of biological invasion. Because it was entirely lacking from our previous work, we want to assess the particular scenario of strict ``nuclear-swamping'' (that is, a constant flow of nuclear genes from an infinite source into a finite receiving population, without any gene flow in the other direction nor any mitochondrial gene flow), which we expect can easily produce massive mito-nuclear discordance. We will relax the nuclear-swamping scenario to assess how strict the swamping scenario needs to be in order to produce  massive mito-nuclear discordance.
+
+We start with strict swamping simulations, which are most intuitive.
 
 ## Strict Swamping
 
-Starting from a large grid with a small taxon 2. Taxon 2 is forbidden in area 1 to keep 
+We simulate a large grid with most of the space (90%) covered by species 1 and a small area (10%) covered by species 2. The grid is static. Taxon 1 can enter habitat 2 although it has reduced fitness there (0.9), but species 2 cannot enter habitat 1 since it has zero fitness there. Note that we define species based on the genotype at on local adaptation locus. Male migration rate is fixed at 0.1. We vary female migration rate between 0.1 and $10^{-9}$. We monitor introgression every 100 generations.
 
 ###  Normal size depth
 
@@ -59,84 +65,102 @@ for (i in 1:length(mFemale))
 
 #### In depth visualisation of two extreme cases
 
+Define extraction function
+```{r}
+Fintrogprofile <- function(file, xlim=0)
+{
+  introgprofile <- read.table(file = file, header = T)
+  habitat2 <- introgprofile %>% filter(x>xlim)
+  habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+  return(habitat2)
+}
+
+Fmeltprofile <- function(x)
+{
+  meltedleadnu <- pivot_longer(x, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+}
+
+```
+
+And plotting functions
+```{r}
+plotprofile <- function(x)
+{
+  ggplot(x, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear') + theme_bw()
+}
+
+plotdiscordance <- function(x)
+{
+  ggplot(x, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
+  geom_jitter(width = 0.2, height = 0) +
+  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
+  transition_time(Year)+
+  ease_aes('linear')+
+    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
+  ease_aes('linear')+ theme_bw()
+}
+```
+
+
 Results of strict swamping with female migration rate of $10^{-1}$. 
 
 Marker patterns through time:
 
 ```{r}
-introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_9/IntrogProfile.txt", header = T)
-habitat2 <- introgprofile %>% filter(x>0)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
+profile <- Fintrogprofile("Simulations/StrictSwamping/StrictSwamping_9/IntrogProfile.txt")
+meltedleadnu <- Fmeltprofile(profile)
+plotprofile(meltedleadnu)
 ```
 
-And corresponding discordance:
+The local adaptation lineage defining species 2 remains predominant above x=45 for the 6000 generations simulated. There is massive and quick introgression of both autosomal and mitochondrial markers from species 1 into species 2 (right of x-coordinate 45). 
+
+The corresponding introgression discordance:
 
 ```{r}
-ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
-  geom_jitter(width = 0.2, height = 0) +
-  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
-  transition_time(Year)+
-  ease_aes('linear')+
-    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
-  ease_aes('linear')
-
-
+plotdiscordance(profile)
 ```
 
-Results of strict swamping with female migration rate of $10^{-9}$. 
+There is basically no discordance at all.
+
+Now we look at the results of strict swamping with female migration rate of $10^{-9}$. 
 
 Marker patterns through time:
 
 ```{r}
-introgprofile <- read.table(file = "Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt", header = T)
-habitat2 <- introgprofile %>% filter(x>0)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
+profile <- Fintrogprofile("Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt")
+meltedleadnu <- Fmeltprofile(profile)
+plotprofile(meltedleadnu)
 ```
 
-And corresponding discordance:
+Again, the local adaptation lineage defining species 2 remains predominant above x=45 for the 6000 generations simulated. Autosomal introgression into species 2 is still massive and quite fast (a bit slower), but there is almost no mitochondrial introgression into species 2. There is a little bit of autosomal introgression from species 2 to species 1 (in x<45) and the final frequency of allele 1 lineage throughout the grid is `r mean(profile$MeanA[profile$Year>3000])` (which is more than the initial frequency `r mean(profile$MeanA[profile$Year==0])`, consistent with the strict swamping selecting for lineage 1).
+
+The corresponding discordance:
 
 ```{r}
-ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
-  geom_jitter(width = 0.2, height = 0) +
-  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
-  transition_time(Year)+
-  ease_aes('linear')+
-    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
-  ease_aes('linear')
-
-
+plotdiscordance(profile)
 ```
 
+
+There is massive introgression discordance in species 2, with a final discordance of `r mean(profile$MeanA[profile$Year>3000 & profile$x>47]-profile$LocusMt[profile$Year>3000 & profile$x>47])`.
+
 #### General results across parameter space
+
+We now look at the final introgression discordance in species 2.
 
 ```{r}
 discordance <- sapply(1:9,
 function(i){
-introgprofile <- read.table(file = paste0("Simulations/StrictSwamping/StrictSwamping_",i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>45, Year==max(Year))
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-mean(habitat2$MeanA - habitat2$LocusMt)
+  habitat2 <- Fintrogprofile(paste0("Simulations/StrictSwamping/StrictSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
+  habitat2 <- habitat2 %>% filter(Year==max(Year))
+  mean(habitat2$MeanA - habitat2$LocusMt)
 })
 dat <- data.frame(discordance, female_migration=10^-(9:1))
-ggplot(dat, aes(x=female_migration, y=discordance)) + geom_point() + scale_x_log10()
+ggplot(dat, aes(x=female_migration, y=discordance)) + geom_point() + scale_x_log10() 
 
 ```
 
@@ -146,7 +170,7 @@ Conclusion: There is very little discordance, and only for a short time period, 
 
 ### Try very deep simul
 
-Not really important for now. It was just a check that the program could cope with huge grids. It looks like a 300 by 10 grid needs 64Go of RAM.
+Not really important for now. It was just a check that the program could cope with huge grids. It looks like a 300 by 10 grid needs 64Go of RAM. The results are the same as with a shorter grid in the case of strict swamping.
 
 ```{r, eval=FALSE}
 source("ParameterizeSimuls.R")
@@ -211,7 +235,8 @@ ggplot(profile, aes(x=x, y=LocusMt)) + geom_point( alpha=0.3) + geom_vline(xinte
 
 ## Relaxed Swamping
 
-Here swamping is not strict because taxon 2 can enter habitat 1. Female migration rate varies from very low to normal (always the same for both taxa).
+We simulate a large grid with most of the space (90%) covered by species 1 and a small area (10%) covered by species 2. The grid is static. Both species can enter the other habitat but they have reduced fitness there (0.9). The asymmetry of introgression comes only from the initial size of the two species gene pools. Male migration rate is fixed at 0.1. We vary female migration rate between 0.1 and $10^{-9}$. We monitor introgression every 100 generations.
+
 
 <!-- ### Try very deep simul -->
 
@@ -232,7 +257,6 @@ for (i in 1:length(mFemale))
 }
 
 ```
-
 
 ###  Normal size depth
 
@@ -255,7 +279,7 @@ for (i in 1:length(mFemale))
                    generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
                    dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "false", RunNumber = 100, LowHybridBound=51,
                                       WritePeriod=100)
-  qsub_gadi(jobdir =paste0("Simulations/RelaxSwamping/RelaxSwamping_",i), gsubfile = paste0("gadi_RelaxSwamping_",i))
+  qsub_gadi(jobdir =paste0("Simulations/RelaxSwamping/RelaxSwamping_",i), gsubfile = paste0("gadi_RelaxSwamping_",i), mem=16)
 }
 
 ```
@@ -268,45 +292,33 @@ Results of relaxed swamping with female migration rate of $10^{-9}$.
 Marker patterns through time:
 
 ```{r}
-introgprofile <- read.table(file = "Simulations/RelaxSwamping/RelaxSwamping_1/IntrogProfile.txt", header = T)
-habitat2 <- introgprofile %>% filter(x>0)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth()+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
+profile <- Fintrogprofile("Simulations/RelaxSwamping/RelaxSwamping_1/IntrogProfile.txt")
+meltedleadnu <- Fmeltprofile(profile)
+plotprofile(meltedleadnu)
 ```
 
-And corresponding discordance:
+Again, the local adaptation lineage defining species 2 remains predominant above x=45. Autosomal introgression into species 2 is moderate (around 0.8 at the end of the simulation), but there is almost no mitochondrial introgression into species 2. Autosomal introgression is still a bit far from equilibrium at the end of the simulation, but it looks like the final pattern should be uniform lineage frequencies across the grid, with the final frequencies being the same as the initial frequencies (which is consistent with the neutrality of autosomal markers). The final frequency of species 1 autosomal markers is `r mean(habitat2$MeanA[habitat2$Year==max(habitat2$Year)])` and the starting frequency is `r mean(habitat2$MeanA[habitat2$Year==0])`.
+
+The corresponding discordance:
 
 ```{r}
-ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
-  geom_jitter(width = 0.2, height = 0) +
-  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
-  transition_time(Year)+
-  ease_aes('linear')+
-    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
-  ease_aes('linear')
-
-
+plotdiscordance(profile)
 ```
 
-Species 2 can enter habitat 1, which creates a shallow cline for autosomal markers, and only moderate mito-nuclear discordance (or just marginally massive based on the old threshold of 80%) in the swamped area.
+Species 2 can enter habitat 1, which creates a shallow cline for autosomal markers, and only moderate mito-nuclear discordance (or just marginally massive based on the old threshold of 80%) in the swamped area. The equilibrium discordance should be close to the final frequency of species 1 autosomal markers, around 0.9.
+
+In the case of no female migration, I expect the value of equilibrium discordance is approximately equal to the initial frequency of species 1 across the grid.
 
 ### General results
+
+We now consider the value of final discordance for the 9 values of female migration rate.
 
 ```{r}
 discordance <- sapply(1:9,
 function(i){
-introgprofile <- read.table(file = paste0("Simulations/RelaxSwamping/RelaxSwamping_",i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>45, Year==max(Year))
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-mean(habitat2$MeanA - habitat2$LocusMt)
+  habitat2 <- Fintrogprofile(paste0("Simulations/RelaxSwamping/RelaxSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
+  habitat2 <- habitat2 %>% filter(Year==max(Year))
+  mean(habitat2$MeanA - habitat2$LocusMt)
 })
 dat <- data.frame(discordance, female_migration=10^-(9:1))
 ggplot(dat, aes(x=female_migration, y=discordance)) + geom_point() + scale_x_log10() +
@@ -318,11 +330,11 @@ Relaxed swamping does not work as well as strict swamping. Discordance can be qu
 
 This result seems rather trivial. A large initial imbalance in the sizes of the two gene pools leads to large introgression final frequencies for markers that move... but not those that do not move.
 
-With "strict swamping", which suggests a somewhat artificial biological process, can you generate more discordance than what is determined by the initial gene pool size.
 
-## Relaxed Swamping with alterations?
 
-I have not looked into it, but perhaps relaxed swamping combined with other processes could be interesting to explore. 
+We can add {relaxed swamping + low female migration rates} as a scenario that may produce MDMI, with the extend of MDMI being controlled by the initial species frequencies.
+
+With "strict swamping", which suggests a somewhat artificial biological process, can you generate more discordance than what is determined by the initial gene pool size, because of selection against species 2 autosomal background.
 
 
 ## Similar to Seixas et al. scenario
@@ -378,47 +390,22 @@ for (i in 1:length(mMale))
 High female migration rate in both species ($10^{-1}$)
 
 ```{r}
-i <- 1
-introgprofile <- read.table(file = paste0("Simulations/InvasionHare/InvasionHare_",i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>30)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-
-habitat2 %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
-  geom_point(aes(x=x+0.1, y=MeanA), col="red")+ facet_wrap(~Run) +
-  geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
-
-
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth(se = FALSE)+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
+InvasionHare_1 <- Fintrogprofile( paste0("Simulations/InvasionHare/InvasionHare_1/IntrogProfile.txt"), xlim = 30)
+meltInvasionHare_1 <- Fmeltprofile(InvasionHare_1)
+plotprofile(meltInvasionHare_1)
 ```
 
 Low female migration rate in both species ($10^{-9}$)
 
 ```{r}
-i <- 9
-introgprofile <- read.table(file = paste0("Simulations/InvasionHare/InvasionHare_",i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>45)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+InvasionHare_9 <- Fintrogprofile( paste0("Simulations/InvasionHare/InvasionHare_9/IntrogProfile.txt"), xlim = 30)
+meltInvasionHare_9 <- Fmeltprofile(InvasionHare_9)
+plotprofile(meltInvasionHare_9)
 
-habitat2 %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
+InvasionHare_9 %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
   geom_point(aes(x=x+0.1, y=MeanA), col="red")+ facet_wrap(~Run) +
   geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
 
-
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth(se = FALSE)+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
 ```
 
 
@@ -429,10 +416,9 @@ ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) +
 mFemale <- as.list(split(expand.grid(10^(-c(1,6,9)),10^(-c(1,6,9))), f=1:9))
 
 discordance <- map(.x = 1:9, .f = function(i){
-introgprofile <- read.table(file = paste0("Simulations/InvasionHare/InvasionHare_",i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>45, Year==max(Year))
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-data.frame(i=i, mf1 = unlist(mFemale[[i]][[1]]), mf2=mFemale[[i]][[2]], disc= habitat2$MeanA - habitat2$LocusMt)
+  habitat2 <- Fintrogprofile(paste0("Simulations/InvasionHare/InvasionHare_",i,"/IntrogProfile.txt"), xlim = 30)
+  habitat2 <- habitat2 %>% filter(x>45, Year==max(Year))
+  data.frame(i=i, mf1 = unlist(mFemale[[i]][[1]]), mf2=mFemale[[i]][[2]], disc= habitat2$MeanA - habitat2$LocusMt)
 }) %>% reduce(bind_rows)
 
 
@@ -451,10 +437,9 @@ ggplot(discordance, aes(x=mf1, y=disc)) + geom_point() + scale_x_log10() +
 mMale <- as.list(split(expand.grid(10^(-c(1,6,9)),10^(-c(1,6,9))), f=1:9))
 
 discordance <- map(.x = 1:9, .f = function(i){
-introgprofile <- read.table(file = paste0("Simulations/InvasionHareMale/InvasionHareMale_",i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>30, Year==max(Year))
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
-data.frame(i=i, mm1 = unlist(mMale[[i]][[1]]), mm2=mMale[[i]][[2]], disc= habitat2$MeanA - habitat2$LocusMt)
+  habitat2 <- Fintrogprofile(paste0("Simulations/InvasionHareMale/InvasionHareMale_",i,"/IntrogProfile.txt"), xlim = 30)
+  habitat2 <- habitat2 %>% filter(x>45, Year==max(Year))
+  data.frame(i=i, mm1 = unlist(mMale[[i]][[1]]), mm2=mMale[[i]][[2]], disc= habitat2$MeanA - habitat2$LocusMt)
 }) %>% reduce(bind_rows)
 
 
@@ -471,24 +456,14 @@ Not very convincing, but let's check what happens for male 1 migrating, male 2 n
 
 
 ```{r}
-i <- 7
-introgprofile <- read.table(file = paste0("Simulations/InvasionHareMale/InvasionHareMale_",i,"/IntrogProfile.txt"), header = T)
-habitat2 <- introgprofile %>% filter(x>5)
-habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+profile <- Fintrogprofile(paste0("Simulations/InvasionHareMale/InvasionHareMale_7/IntrogProfile.txt"))
+meltedleadnu <- Fmeltprofile(profile)
 
-habitat2 %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
+profile %>% filter(Year==max(Year)) %>% ggplot(aes(x=x, y=LocusMt)) + geom_point() + 
   geom_point(aes(x=x+0.1, y=MeanA), col="red")+ facet_wrap(~Run) +
   geom_point(aes(x=x, y=LocusAdapt0), alpha=0.3, col="blue")
 
-
-meltedleadnu <- pivot_longer(habitat2, cols = c(LocusMt, MeanA, LocusAdapt0),
-                           names_to = "marker",
-                           values_to = "invaderproportion")
-
-ggplot(meltedleadnu, aes(x=x, y=invaderproportion, color=marker)) + 
-  geom_jitter(width = 0.1, height = 0.001) + ylim(0,1)+ geom_smooth(se = FALSE)+
-  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
-  ease_aes('linear')
+plotprofile(meltedleadnu)
 ```
 
 It looks like the end result would be 50% autosomal introgression, 100 % mitochondrial, hence a discordance of 50%.
@@ -505,11 +480,31 @@ We need:
 * Overall (not sure whether that means on average, or for both species), female migration rate of 0.005 and a male migration rate of 0.035
 * Some control of admixture asymmetry to produce "mitochondrial simulations" and "autosomal simulations"
 
-For that last point we mentionned using species-sex-specific migration rates. I do not see how to get close to Seixas et al.'s simulations that way.
+For that last point we mentioned using species-sex-specific migration rates. I do not see how to get close to Seixas et al.'s simulations that way: once habitat 2 disappears and is replaced by habitat 1, species 1 will invade the area and be in contact with species 2 in all invaded demes until species 2 disappears. As long as invasion occurs (and if it does not occur there is nothing interesting to see) lots of admixture will occur whatever the migration rates of each species-sex.
 
-Instead, I will try to use again the mating asymmetry matrix.
+Therefore, I tried using again the mating asymmetry matrix.
 
-Short "Mitochondrial simulations":
+$$
+\left(\begin{array}{cccc} 
+  & i|i & i|r & r|r\\
+i|i & 1 & \beta	&	\beta \\
+i|r & (\alpha + \beta)/2 &	(\alpha + \beta)/2	& (\alpha + \beta)/2 \\
+r|r & \alpha & \alpha	&	1\\
+\end{array}\right)
+$$ 
+
+Where $i$ means invasive species, $r$ resident, $i|i$ homozygote invasive... rows indicate females, columns males.
+
+We run two sets of simulations, one attempting to reproduce the autosomal simulations in Seixas et al. and one attempting to reproduce the mitochondrial simulations in Seixas et al. Of course here we simulate all markers in each simulation.
+
+$$
+\begin{array}{ccccc}
+ \text{Target} & \text{Male Migration} & \text{Female Migration} & \alpha & \beta  \\
+  \text{Autosomal} & 0.02 &  0.02 & 0.005 & 0.005\\
+  \text{Mitochondrial} & 0.035 &  0.005 & 0.025 & 0.001 \\
+\end{array}
+$$
+Short "Mitochondrial simulations", in which matings are asymmetrical and migration rates sex specific.
 ```{r}
 alpha <- 0.025
 beta <- 0.001
@@ -569,7 +564,132 @@ for (i in 1:length(size_mult))
 
 
 
+### "Mitochondrial simulations" results
 
+
+```{r}
+smallmitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_1/IntrogProfile.txt"))
+meltsmallmitoch <- Fmeltprofile(smallmitoch)
+plotprofile(meltsmallmitoch)
+plotdiscordance(smallmitoch)
+
+smallmitoch %>% filter(x>25, Year>5000) %>%
+  mutate(discordance = MeanA - LocusMt) %>% 
+  group_by(Run) %>%
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9) 
+```
+One  Run out of 12 gives marginal MDMI (0.855)
+
+
+```{r}
+ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
+  geom_jitter(width = 0.2, height = 0) +
+  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
+  transition_time(Year)+
+  ease_aes('linear')+
+    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
+  ease_aes('linear')
+
+
+```
+
+
+Longer grids did not finish yet:
+```{r}
+midmitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_2/IntrogProfile.txt"))
+meltmidmitoch <- Fmeltprofile(midmitoch)
+plotprofile(meltmidmitoch)
+```
+
+```{r}
+largemitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_3/IntrogProfile.txt"))
+largemidmitoch <- Fmeltprofile(largemitoch)
+plotprofile(largemidmitoch)
+```
+
+
+### "Autosomal simulations" results
+
+
+```{r}
+
+nuclearsmall <- Fintrogprofile("Simulations/Nuclear/Nuclear_1/IntrogProfile.txt")
+meltsmallnuclear <- Fmeltprofile(nuclearsmall)
+plotprofile(meltsmallnuclear)
+plotdiscordance(nuclearsmall)
+
+nuclearsmall %>% filter(x>25, Year>5000) %>%
+  mutate(discordance = MeanA - LocusMt) %>% 
+  group_by(Run) %>%
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9) 
+```
+
+One Run out of 10 gives marginal MDMI.
+
+
+
+<!-- Did not finish yet: -->
+
+<!-- ```{r} -->
+<!-- nuclearmid <- Fintrogprofile("Simulations/Nuclear/Nuclear_2/IntrogProfile.txt") -->
+<!-- meltmidnuclear <- Fmeltprofile(nuclearmid) -->
+<!-- plotprofile(meltmidnuclear) -->
+
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- nuclearhigh <- Fintrogprofile("Simulations/Nuclear/Nuclear_3/IntrogProfile.txt") -->
+<!-- melthighnuclear <- Fmeltprofile(nuclearhigh) -->
+<!-- plotprofile(melthighnuclear) -->
+<!-- ``` -->
+
+
+### Combining the "autosomal" and the "mitochondrial" simulations
+
+Apparent massive mito-nuclear discordance at the level 0.9 occurs in 3/10 runs when we combine simulations (note that the runs of the two types of simulations are paired at random).
+
+```{r}
+joinedsmall <- full_join(x = nuclearsmall %>% select(Run, Year, x, MeanA),
+                         y=smallmitoch %>% select(Run, Year, x, LocusMt), by=c("Run", "Year", "x"))
+
+Fmeltprofile(joinedsmall)
+  
+plotprofile(joinedsmall)
+plotdiscordance(joinedsmall) + geom_smooth(se = FALSE) + geom_vline(xintercept = 20)
+
+```
+
+```{r}
+joinedsmall %>% filter(x>25, Year>5000) %>%
+  mutate(discordance = MeanA - LocusMt) %>% 
+  group_by(Run) %>%
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9)
+```
+
+Trying with all combinations of run:
+```{r}
+joinedsmall_allcomb <- inner_join(x = nuclearsmall %>% select(Run, Year, x, MeanA, LocusAdapt0),
+                         y=smallmitoch %>% select(Run, Year, x, LocusMt), by=c("x", "Year"))
+joinedsmall_allcomb$Run <- paste0("x",joinedsmall_allcomb$Run.x, "y",joinedsmall_allcomb$Run.y)
+
+summarydiscallcomb <- joinedsmall %>% filter(x>25, Year>5000) %>%
+  mutate(discordance = MeanA - LocusMt) %>% 
+  group_by(Run) %>%
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9)
+mean(summarydiscallcomb$MDMI_90)
+
+ggplot(summarydiscallcomb, aes(x=m_disc, fill=MDMI_90)) + geom_histogram()
+```
+
+Only 20% of combinations give MDMI at the level 0.9.
+
+
+### Rethinking MDMI threshold
+
+What is a good MDMI level here? What is a good null scenario to use to test whether the mechanisms proposed in Seixas et al. do anything at all? 
+I am thinking that the biological invasion is a necessary context. Their point is more that sex-specific migration rates and asymmtrical mating matter.
+Therefore, the "autosomal simulations" are a good null in themselves: migration rates are uniform and mating is symmetrical.
 
 
 
