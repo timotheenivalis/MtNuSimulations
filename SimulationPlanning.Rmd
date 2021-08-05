@@ -101,7 +101,7 @@ plotdiscordance <- function(x)
   labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
   transition_time(Year)+
   ease_aes('linear')+
-    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
+    geom_hline(yintercept = 0.9, linetype="dashed") +  transition_time(Year)+
   ease_aes('linear')+ theme_bw()
 }
 ```
@@ -297,7 +297,7 @@ meltedleadnu <- Fmeltprofile(profile)
 plotprofile(meltedleadnu)
 ```
 
-Again, the local adaptation lineage defining species 2 remains predominant above x=45. Autosomal introgression into species 2 is moderate (around 0.8 at the end of the simulation), but there is almost no mitochondrial introgression into species 2. Autosomal introgression is still a bit far from equilibrium at the end of the simulation, but it looks like the final pattern should be uniform lineage frequencies across the grid, with the final frequencies being the same as the initial frequencies (which is consistent with the neutrality of autosomal markers). The final frequency of species 1 autosomal markers is `r mean(habitat2$MeanA[habitat2$Year==max(habitat2$Year)])` and the starting frequency is `r mean(habitat2$MeanA[habitat2$Year==0])`.
+Again, the local adaptation lineage defining species 2 remains predominant above x=45. Autosomal introgression into species 2 is moderate (around 0.8 at the end of the simulation), but there is almost no mitochondrial introgression into species 2. Autosomal introgression is still a bit far from equilibrium at the end of the simulation, but it looks like the final pattern should be uniform lineage frequencies across the grid, with the final frequencies being the same as the initial frequencies (which is consistent with the neutrality of autosomal markers). The final frequency of species 1 autosomal markers is `r mean(profile$MeanA[profile$Year==max(profile$Year)])` and the starting frequency is `r mean(profile$MeanA[profile$Year==0])`.
 
 The corresponding discordance:
 
@@ -314,14 +314,17 @@ In the case of no female migration, I expect the value of equilibrium discordanc
 We now consider the value of final discordance for the 9 values of female migration rate.
 
 ```{r}
-discordance <- sapply(1:9,
-function(i){
+
+
+discordance <- map(.x = 1:9, .f = function(i){
   habitat2 <- Fintrogprofile(paste0("Simulations/RelaxSwamping/RelaxSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
   habitat2 <- habitat2 %>% filter(Year==max(Year))
-  mean(habitat2$MeanA - habitat2$LocusMt)
-})
-dat <- data.frame(discordance, female_migration=10^-(9:1))
-ggplot(dat, aes(x=female_migration, y=discordance)) + geom_point() + scale_x_log10() +
+  data.frame(i=i, mf = 10^-(10-i),
+             discx= habitat2$MeanA - habitat2$LocusMt, Run=habitat2$Run) %>% 
+    group_by(Run, mf) %>% summarise(disc=mean(discx))
+}) %>% reduce(bind_rows)
+
+ggplot(discordance, aes(x=mf, y=disc)) + geom_point() + scale_x_log10() +
   ylim(min(discordance),1) + geom_hline(yintercept = 0.8, lty=2)
 
 ```
@@ -539,10 +542,15 @@ In this case we do not model sex-specific migration rates, and matings are symme
 ```{r}
 alpha <- 0.005
 beta <- 0.005
-size_mult <- c(1,3,10)
+size_mult <- c(1,3,10) 
 
 for (i in 1:length(size_mult))
 {
+  
+#   alpha <- 0.005
+# beta <- 0.005
+# size_mult <- c(1,3,10, 1, 1)#I need more grid size one simuls
+#   i <- 5
   init_folder(homedir = "Simulations/Nuclear", focaldir = paste0("Nuclear_", i))
   write_full_param(homedir = "Simulations/Nuclear", focaldir = paste0("Nuclear_", i),
                    demesize = 20, dimx = 30*size_mult[i], dimy = 10, Xlimit = 20*size_mult[i],
@@ -558,9 +566,22 @@ for (i in 1:length(size_mult))
                                       WritePeriod=100)
   qsub_gadi(jobdir =paste0("Simulations/Nuclear/Nuclear_",i),
             gsubfile = paste0("gadi_Nuclear_",i), mem=8*size_mult[i])
+  
+  
 }
 
+
+
 ```
+
+
+### Rethinking MDMI threshold
+
+What is a good MDMI level here? What is a good null scenario to use to test whether the mechanisms proposed in Seixas et al. do anything at all? 
+I am thinking that the biological invasion is a necessary context. Their point is more that sex-specific migration rates and asymmetrical mating generate MDMI in that context.
+Therefore, the "autosomal simulations" are a good null in themselves: migration rates are uniform and mating is symmetrical.
+
+In these new simulations, it appears that MDMI can be transient during an invasion, but rarely so. Our previous work did not really consider that. It would be good to distinguish between the possibilities of transient MDMI and equilibrium MDMI.
 
 
 
@@ -573,12 +594,15 @@ meltsmallmitoch <- Fmeltprofile(smallmitoch)
 plotprofile(meltsmallmitoch)
 plotdiscordance(smallmitoch)
 
-smallmitoch %>% filter(x>25, Year>5000) %>%
+summarymitoch <- smallmitoch %>% filter(x>25, Year>5000) %>%
   mutate(discordance = MeanA - LocusMt) %>% 
   group_by(Run) %>%
   summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9) 
+
+mean(summarymitoch$m_disc)
+mean(summarymitoch$MDMI_90)
 ```
-One  Run out of 12 gives marginal MDMI (0.855)
+One Run out of 12 gives marginal MDMI (0.855)
 
 
 ```{r}
@@ -594,34 +618,43 @@ ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) +
 ```
 
 
-Longer grids did not finish yet:
-```{r}
-midmitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_2/IntrogProfile.txt"))
-meltmidmitoch <- Fmeltprofile(midmitoch)
-plotprofile(meltmidmitoch)
-```
+<!-- Longer grids did not finish yet: -->
+<!-- ```{r} -->
+<!-- midmitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_2/IntrogProfile.txt")) -->
+<!-- meltmidmitoch <- Fmeltprofile(midmitoch) -->
+<!-- plotprofile(meltmidmitoch) -->
+<!-- ``` -->
 
-```{r}
-largemitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_3/IntrogProfile.txt"))
-largemidmitoch <- Fmeltprofile(largemitoch)
-plotprofile(largemidmitoch)
-```
+<!-- ```{r} -->
+<!-- largemitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_3/IntrogProfile.txt")) -->
+<!-- largemidmitoch <- Fmeltprofile(largemitoch) -->
+<!-- plotprofile(largemidmitoch) -->
+<!-- ``` -->
 
 
 ### "Autosomal simulations" results
 
 
 ```{r}
+nuclearsmall1 <- Fintrogprofile("Simulations/Nuclear/Nuclear_1/IntrogProfile.txt")
+nuclearsmall4 <- Fintrogprofile("Simulations/Nuclear/Nuclear_4/IntrogProfile.txt") %>% mutate(Run=Run+max(nuclearsmall1$Run))
+nuclearsmall5 <- Fintrogprofile("Simulations/Nuclear/Nuclear_5/IntrogProfile.txt") %>% mutate(Run=Run+max(nuclearsmall4$Run))
 
-nuclearsmall <- Fintrogprofile("Simulations/Nuclear/Nuclear_1/IntrogProfile.txt")
+nuclearsmall <-rbind(nuclearsmall1, nuclearsmall4, nuclearsmall5)
+
 meltsmallnuclear <- Fmeltprofile(nuclearsmall)
+
 plotprofile(meltsmallnuclear)
 plotdiscordance(nuclearsmall)
 
-nuclearsmall %>% filter(x>25, Year>5000) %>%
+summarynuclearsmall <- nuclearsmall %>% filter(x>25, Year>5000) %>%
   mutate(discordance = MeanA - LocusMt) %>% 
   group_by(Run) %>%
   summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9) 
+
+mean(summarynuclearsmall$MDMI_90)
+mean(summarynuclearsmall$m_disc)
+hist(summarynuclearsmall$m_disc, breaks = 100)
 ```
 
 One Run out of 10 gives marginal MDMI.
@@ -650,46 +683,56 @@ One Run out of 10 gives marginal MDMI.
 Apparent massive mito-nuclear discordance at the level 0.9 occurs in 3/10 runs when we combine simulations (note that the runs of the two types of simulations are paired at random).
 
 ```{r}
-joinedsmall <- full_join(x = nuclearsmall %>% select(Run, Year, x, MeanA),
+joinedsmall <- full_join(x = nuclearsmall %>% select(Run, Year, x, MeanA, LocusAdapt0),
                          y=smallmitoch %>% select(Run, Year, x, LocusMt), by=c("Run", "Year", "x"))
 
-Fmeltprofile(joinedsmall)
+joinedsmallmelt <- Fmeltprofile(joinedsmall)
   
-plotprofile(joinedsmall)
 plotdiscordance(joinedsmall) + geom_smooth(se = FALSE) + geom_vline(xintercept = 20)
 
 ```
 
 ```{r}
-joinedsmall %>% filter(x>25, Year>5000) %>%
+summaryjoinedsmall <- joinedsmall %>% filter(x>25, Year>5000) %>%
   mutate(discordance = MeanA - LocusMt) %>% 
   group_by(Run) %>%
   summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9)
+
+mean(summaryjoinedsmall$MDMI_90, na.rm = TRUE)
 ```
 
 Trying with all combinations of run:
 ```{r}
 joinedsmall_allcomb <- inner_join(x = nuclearsmall %>% select(Run, Year, x, MeanA, LocusAdapt0),
                          y=smallmitoch %>% select(Run, Year, x, LocusMt), by=c("x", "Year"))
+
 joinedsmall_allcomb$Run <- paste0("x",joinedsmall_allcomb$Run.x, "y",joinedsmall_allcomb$Run.y)
 
-summarydiscallcomb <- joinedsmall %>% filter(x>25, Year>5000) %>%
+summarydiscallcomb <- joinedsmall_allcomb %>% filter(x>25, Year>5000) %>%
   mutate(discordance = MeanA - LocusMt) %>% 
   group_by(Run) %>%
   summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9)
-mean(summarydiscallcomb$MDMI_90)
 
+mean(summarydiscallcomb$MDMI_90, na.rm = TRUE)
 ggplot(summarydiscallcomb, aes(x=m_disc, fill=MDMI_90)) + geom_histogram()
 ```
 
-Only 20% of combinations give MDMI at the level 0.9.
+Only `r round(mean(summarydiscallcomb$MDMI_90, na.rm = TRUE)*100, 2)`% of combinations give MDMI at the level 0.9, but `r round(mean(summarydiscallcomb$m_disc>=0.8, na.rm = TRUE)*100, 2)`% of combinations give MDMI at the level 0.8.
 
+```{r}
+summarymitoch$type <- "mitoch"
+summarynuclearsmall$type <- "nuclear"
+summarydiscallcomb$type <- "combined"
+summariesmerge <- rbind(summarymitoch, summarynuclearsmall, summarydiscallcomb)
+summariesmerge$real <- summariesmerge$type!="combined"
 
-### Rethinking MDMI threshold
+library(ggbeeswarm)
+geom_beewa
+ggplot(summariesmerge, aes(x=type, y=m_disc, fill=real)) +
+  geom_violin() + geom_point() + geom_hline(yintercept = c(0.8,0.9), lty=c(2,1)) +
+  theme_bw() + labs(y="Mito-nuclear discordance", x="calculation type")
 
-What is a good MDMI level here? What is a good null scenario to use to test whether the mechanisms proposed in Seixas et al. do anything at all? 
-I am thinking that the biological invasion is a necessary context. Their point is more that sex-specific migration rates and asymmtrical mating matter.
-Therefore, the "autosomal simulations" are a good null in themselves: migration rates are uniform and mating is symmetrical.
+```
 
 
 
