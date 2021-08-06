@@ -35,6 +35,9 @@ We simulate a large grid with most of the space (90%) covered by species 1 and a
 
 ###  Normal size depth
 
+
+The following code is just the R-interface to start simulations with a specific set of parameters on the cluster.
+
 ```{r, eval=FALSE}
 
 mFemale <- list(c(0.000000001, 0.000000001),
@@ -731,6 +734,80 @@ geom_beewa
 ggplot(summariesmerge, aes(x=type, y=m_disc, fill=real)) +
   geom_violin() + geom_point() + geom_hline(yintercept = c(0.8,0.9), lty=c(2,1)) +
   theme_bw() + labs(y="Mito-nuclear discordance", x="calculation type")
+
+```
+
+
+### The "mitochondrial" simulations give quite high discordance. Why?
+
+Mitochondrial simulations have 3 properties that may facilitate discordance:
+
+* Unequal initial gene pool size
+* Sex-biased dispersal
+* Asymmetrical mating
+
+What if we remove one of them? Which is most important?
+
+
+```{r, echo=FALSE}
+alpha <- 0.025
+beta <- 0.001
+
+#1. remove unequal size
+  init_folder(homedir = "Simulations/Mitoch_relax", focaldir = paste0("Mitoch_relax_", 1))
+  write_full_param(homedir = "Simulations/Mitoch_relax", focaldir = paste0("Mitoch_relax_", 1),
+                   demesize = 20, dimx = 30, dimy = 10, Xlimit = 15,
+                   HabitatSlideBegin=1,
+                   HabitatSlideEnd=16, HabitatSlideDepth=15,
+                   generationnumber = 6000, AllopatryLast = 80000, 
+                   DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  0.005, mMale=0.035,
+                   AcceptRates = c(1, beta, beta,
+                                   (alpha+beta)/2, (alpha+beta)/2, (alpha+beta)/2, 
+                                   alpha, alpha, 1),
+                   Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                                      WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/Mitoch_relax/Mitoch_relax_",1),
+            gsubfile = paste0("Mitoch_relax_",1), mem=8)
+  
+#2. remove sex-biased dispersal
+
+init_folder(homedir = "Simulations/Mitoch_relax", focaldir = paste0("Mitoch_relax_", 2))
+write_full_param(homedir = "Simulations/Mitoch_relax", focaldir = paste0("Mitoch_relax_", 2),
+                   demesize = 20, dimx = 30, dimy = 10, Xlimit = 20,
+                   HabitatSlideBegin=1,
+                   HabitatSlideEnd=11, HabitatSlideDepth=10,
+                   generationnumber = 6000, AllopatryLast = 80000, 
+                   DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  0.02, mMale=0.02,
+                   AcceptRates = c(1, beta, beta,
+                                   (alpha+beta)/2, (alpha+beta)/2, (alpha+beta)/2, 
+                                   alpha, alpha, 1),
+                   Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                                      WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/Mitoch_relax/Mitoch_relax_",2),
+            gsubfile = paste0("Mitoch_relax_",2), mem=8)  
+
+#3 remove asymmetrical mating (but keep restricted hybridisation)
+  
+alpha <- 0.005
+beta <- 0.005
+
+  init_folder(homedir = "Simulations/Mitoch_relax", focaldir = paste0("Mitoch_relax_", 3))
+write_full_param(homedir = "Simulations/Mitoch_relax", focaldir = paste0("Mitoch_relax_", 3),
+                   demesize = 20, dimx = 30, dimy = 10, Xlimit = 20,
+                   HabitatSlideBegin=1,
+                   HabitatSlideEnd=11, HabitatSlideDepth=10,
+                   generationnumber = 6000, AllopatryLast = 80000, 
+                   DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  0.005, mMale=0.035,
+                   AcceptRates = c(1, beta, beta,
+                                   (alpha+beta)/2, (alpha+beta)/2, (alpha+beta)/2, 
+                                   alpha, alpha, 1),
+                   Swamping = "false", RunNumber = 100, LowHybridBound=51,
+                                      WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/Mitoch_relax/Mitoch_relax_",3),
+            gsubfile = paste0("Mitoch_relax_",3), mem=8)
 
 ```
 

@@ -1,0 +1,139 @@
+---
+title: "Results summary"
+author: "Timothee Bonnet"
+date: "06/08/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, echo = FALSE) 
+```
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(gganimate)
+library(viridis)
+```
+
+
+```{r, echo=FALSE}
+Fintrogprofile <- function(file, xlim=0)
+{
+  introgprofile <- read.table(file = file, header = T)
+  habitat2 <- introgprofile %>% filter(x>xlim)
+  habitat2$MeanA <- apply(habitat2 %>% select(num_range("Locus", 0:19)), 1, mean)
+  return(habitat2)
+}
+
+Fmeltprofile <- function(x)
+{
+  meltedleadnu <- pivot_longer(x, cols = c(LocusMt, MeanA, LocusAdapt0),
+                           names_to = "marker",
+                           values_to = "invaderproportion")
+}
+
+plotprofile <- function(x)
+{
+  ggplot(x, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_jitter(width = 0.1, height = 0) + ylim(0,1)+ geom_smooth(se = FALSE)+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year)+
+  ease_aes('linear') + theme_bw() + scale_colour_viridis_d(labels=c('Local adaptation', 'Mitochondrial', 'Average autosomal') )
+}
+
+plotdiscordance <- function(x)
+{
+  ggplot(x, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
+  geom_jitter(width = 0.1, height = 0) +
+  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
+  transition_time(Year)+
+  ease_aes('linear')+
+    geom_hline(yintercept = 0.9, linetype="dashed") +  transition_time(Year)+
+  ease_aes('linear')+ theme_bw() + scale_colour_viridis_d()
+}
+```
+
+
+Seixas  & al. 2018 used simulations in SPLATCHE2 to show that strong mito-nuclear discordance could occur as a result of sex-biased dispersal during a biological invasion. Seixas & al. 2018 results somewhat differ from Bonnet & al. 2017, although not as much as the paper claims. There are major issues with the simulations used in Seixas & al. 2018, and those issues probably explain the discrepancies from Bonnet & al. 2017. 
+
+Our proximal goal is to confirm that  Seixas & al. 2018 results are incorrect and to warn other researchers about the shortcomings in their analyses.
+
+Our overarching goal is to once more assess whether sex-biased dispersal can generate a massive mito-nuclear discordance, in particular in the context of biological invasion. Because it was entirely lacking from our previous work, we want to assess the particular scenario of strict ``nuclear-swamping'' (that is, a constant flow of nuclear genes from an infinite source into a finite receiving population, without any gene flow in the other direction nor any mitochondrial gene flow), which we expect can easily produce massive mito-nuclear discordance. We will relax the nuclear-swamping scenario to assess how strict the swamping scenario needs to be in order to produce  massive mito-nuclear discordance.
+
+We start with strict swamping simulations, which are most intuitive.
+
+# Strict Swamping
+
+We simulate a large grid with most of the space (90%) covered by species 1 and a small area (10%) covered by species 2. The grid is static. Taxon 1 can enter habitat 2 although it has reduced fitness there (0.9), but species 2 cannot enter habitat 1 since it has zero fitness there. Note that we define species based on the genotype at on local adaptation locus. Male migration rate is fixed at 0.1. We vary female migration rate between 0.1 and $10^{-9}$. We monitor introgression every 100 generations.
+
+## In depth visualisation of two extreme cases
+
+We first check what happens with high female migration rate ($m=10^{-1}$). 
+
+```{r, echo=FALSE, cache=TRUE}
+profile <- Fintrogprofile("Simulations/StrictSwamping/StrictSwamping_9/IntrogProfile.txt")
+meltedleadnu <- Fmeltprofile(profile)
+plotprofile(meltedleadnu)+geom_vline(xintercept = 45)
+```
+
+Habitat 1 is left of $x=45$, habitat 2 starts at $x=45$. Species 2 local adaptation marker persists for the duration of the simulation, but species 2 rapidly capture species 1 mitochondrial lineage and the autosomal introgression into species 2 is massive (towards the end average around 98% of autosomal gene copies in species 2 are of species 1 origin).
+
+There is only very little discordance of introgression into species 2 (a little bit, peaking at around 0.3, in a transient way for the first 900 generations of the secondary contact)
+
+```{r, echo=FALSE, cache=TRUE}
+plotdiscordance(profile)+geom_vline(xintercept = 45)
+```
+
+
+Now we look at the results of strict swamping with almost no female migration ($m=10^{-9}$). 
+
+
+```{r, cache=TRUE}
+profile <- Fintrogprofile("Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt")
+meltedleadnu <- Fmeltprofile(profile)
+plotprofile(meltedleadnu)+geom_vline(xintercept = 45)
+```
+
+Again, the local adaptation lineage defining species 2 remains predominant above x=45 for the 6000 generations simulated. Autosomal introgression into species 2 is still massive and quite fast (a bit slower), but there is almost no mitochondrial introgression into species 2. There is a little bit of autosomal introgression from species 2 to species 1 (in $x<45$) and the final frequency of allele 1 lineage throughout the grid is `r mean(profile$MeanA[profile$Year>3000])` (which is more than the initial frequency `r mean(profile$MeanA[profile$Year==0])`, consistent with the strict swamping selecting for lineage 1).
+
+The corresponding discordance:
+
+```{r, cache=TRUE}
+plotdiscordance(profile)+geom_vline(xintercept = 45)
+```
+
+
+There is massive introgression discordance in species 2, with a final discordance of `r mean(profile$MeanA[profile$Year>3000 & profile$x>47]-profile$LocusMt[profile$Year>3000 & profile$x>47])`.
+
+## General results across parameter space
+
+We now look at the final introgression discordance in species 2.
+
+```{r, cache=TRUE}
+discordance <- sapply(1:9,
+function(i){
+  habitat2 <- Fintrogprofile(paste0("Simulations/StrictSwamping/StrictSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
+  habitat2 <- habitat2 %>% filter(Year==max(Year))
+  mean(habitat2$MeanA - habitat2$LocusMt)
+})
+dat <- data.frame(discordance, female_migration=10^-(9:1))
+ggplot(dat, aes(x=female_migration, y=discordance)) + geom_point() + scale_x_log10() 
+
+```
+
+
+Conclusion: when female migration rates are high there is very little discordance, and only for a short time period, but discordance is massive and long lasting when female migration rates are very low (here $m \leq 10^{-4}$).
+
+
+
+# Relaxed Swamping
+
+We simulate a large grid with most of the space (90%) covered by species 1 and a small area (10%) covered by species 2. The grid is static. Both species can enter the other habitat but they have reduced fitness there (0.9). The asymmetry of introgression comes only from the initial size of the two species gene pools. Male migration rate is fixed at 0.1. We vary female migration rate between 0.1 and $10^{-9}$. We monitor introgression every 100 generations.
+
+
