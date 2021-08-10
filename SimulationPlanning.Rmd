@@ -62,6 +62,18 @@ for (i in 1:length(mFemale))
   qsub_gadi(jobdir =paste0("Simulations/StrictSwamping/StrictSwamping_",i), gsubfile = paste0("gadi_StrictSwamping_",i))
 }
 
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/StrictSwamping2", focaldir = paste0("StrictSwamping_", i))
+  write_full_param(homedir = "Simulations/StrictSwamping2", focaldir = paste0("StrictSwamping_", i),
+                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "true", RunNumber = 100, LowHybridBound=50,
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/StrictSwamping2/StrictSwamping_",i),
+            gsubfile = paste0("gadi_StrictSwamping_",i), mem = 16)
+}
+
 
 ```
 
@@ -69,7 +81,7 @@ for (i in 1:length(mFemale))
 #### In depth visualisation of two extreme cases
 
 Define extraction function
-```{r}
+```{r, }
 Fintrogprofile <- function(file, xlim=0)
 {
   introgprofile <- read.table(file = file, header = T)
@@ -328,7 +340,7 @@ discordance <- map(.x = 1:9, .f = function(i){
 }) %>% reduce(bind_rows)
 
 ggplot(discordance, aes(x=mf, y=disc)) + geom_point() + scale_x_log10() +
-  ylim(min(discordance),1) + geom_hline(yintercept = 0.8, lty=2)
+  ylim(min(discordance),1) + geom_hline(yintercept = 0.9, lty=2)
 
 ```
 
@@ -608,19 +620,6 @@ mean(summarymitoch$MDMI_90)
 One Run out of 12 gives marginal MDMI (0.855)
 
 
-```{r}
-ggplot(habitat2, aes(x=x, y=MeanA-LocusMt, colour=as.factor(Run))) + 
-  geom_jitter(width = 0.2, height = 0) +
-  labs(title="Discordance")+ylim(-1,1)+ labs(title = 'Discordance in swamping scenario Year: {frame_time}', x="X-coordinate")+ 
-  transition_time(Year)+
-  ease_aes('linear')+
-    geom_hline(yintercept = 0.8, linetype="dashed") +  transition_time(Year)+
-  ease_aes('linear')
-
-
-```
-
-
 <!-- Longer grids did not finish yet: -->
 <!-- ```{r} -->
 <!-- midmitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_2/IntrogProfile.txt")) -->
@@ -810,6 +809,48 @@ write_full_param(homedir = "Simulations/Mitoch_relax", focaldir = paste0("Mitoch
             gsubfile = paste0("Mitoch_relax_",3), mem=8)
 
 ```
+
+## remove unequal size
+
+```{r}
+nounequalsize <- Fintrogprofile("Simulations/Mitoch_relax/Mitoch_relax_1/IntrogProfile.txt")
+nounequalsizemelt <- Fmeltprofile(nounequalsize)
+
+plotprofile(nounequalsizemelt)
+plotdiscordance(nounequalsize)
+```
+
+There is no more massive discordance at all.
+
+## remove sex-biased dispersal
+
+
+```{r}
+nosexbias <- Fintrogprofile("Simulations/Mitoch_relax/Mitoch_relax_2/IntrogProfile.txt")
+nosexbiasmelt <- Fmeltprofile(nosexbias)
+
+plotprofile(nosexbiasmelt)
+plotdiscordance(nosexbias)
+```
+
+There is no more massive discordance (or marginal, rare and unstable).
+
+## remove  asymmetrical mating 
+
+```{r}
+nomatingas <- Fintrogprofile("Simulations/Mitoch_relax/Mitoch_relax_3/IntrogProfile.txt")
+nomatingasmelt <- Fmeltprofile(nomatingas)
+
+plotprofile(nomatingasmelt)
+plotdiscordance(nomatingas)
+```
+
+There is massive discordance although marginal, rare and unstable.
+
+
+## Conclusion
+
+It looks like the rare and marginal MDMI in the "mitochondrial simulations" is dependent on the unequal gene pool size (in the context of invasion). However, conditional on the unequal gene pool size, both asymmetrical mating and biased sex-dispersal increase discordance compared to the "autosoaml simulations".
 
 
 
