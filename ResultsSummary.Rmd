@@ -73,7 +73,7 @@ Our overarching goal is to once more assess whether sex-biased dispersal can gen
 
 We start with strict swamping simulations, which are most intuitive.
 
-*NB: I have run most simulation scenarios only for the 48h allowed for a job on the ANU cluster, for convenience and  because I have limited credits (I have already burned 80% of my 3-month allowance). That means the number of simulation replicates is often quite low and may not properly capture the variability of discordance in each scenario. I am thinking that those few replicates are sufficient to get an idea of the median discordance in each scenario and that we can figure out ways to run more simulation replicates once we agree on what scenarios are needed.*
+*NB: I have run most simulation scenarios only for the 48h allowed for a job on the ANU cluster, for convenience and  because I have limited credits (I have already burned 80% of my 3-month allowance). That means the number of simulation replicates is often quite low and may not properly capture the variability of discordance under each scenario. I am thinking that those few replicates are sufficient to get an idea of the median discordance in each scenario and that we can figure out ways to run more simulation replicates once we agree on what scenarios are needed.*
 
 # Strict Swamping
 
@@ -86,17 +86,18 @@ We simulate a large grid with most of the space (90%) covered by species 1 and a
 We first check what happens with high female migration rate ($m=10^{-1}$).
 
 ```{r, echo=FALSE, cache=TRUE}
-profile <- Fintrogprofile("Simulations/StrictSwamping/StrictSwamping_9/IntrogProfile.txt")
+profile <- Fintrogprofile("Simulations/StrictSwamping2/StrictSwamping_9/IntrogProfile.txt")
 meltedleadnu <- Fmeltprofile(profile)
 plotprofile(meltedleadnu)+geom_vline(xintercept = 45)
 ```
 
-Habitat 1 is left of $x=45$, habitat 2 starts at $x=45$. Species 2 local adaptation marker persists for the duration of the simulation, but species 2 rapidly capture species 1 mitochondrial lineage and the autosomal introgression into species 2 is massive (towards the end average around 98% of autosomal gene copies in species 2 are of species 1 origin).
+*NB: the lines are the default GAM from ggplot (I think thin plates?). They don't mean much but I found they were sometimes easy to visualise overall patterns when simulation replicates are very variable.*
 
-There is only very little discordance of introgression into species 2 (a little bit, peaking at around 0.3, in a transient way for the first 900 generations of the secondary contact)
+Habitat 1 is left of $x=45$, habitat 2 starts at $x=45$. Species 2 local adaptation marker persists for the duration of the simulation, but in most cases species 2 rapidly capture species 1 mitochondrial lineage and the autosomal introgression into species 2 is massive (towards the end average around 98% of autosomal gene copies in species 2 are of species 1 origin). In those cases there is only very little discordance of introgression into species 2 (a little bit, peaking at around 0.3, in a transient way for the first 900 generations of the secondary contact).
+However, in 2 simulation replicates the mitochondrial capture does not happen and there is massive discordance (above x=45, species 2 has mt 2, nu 1; for x between 30 and 45, species 1 has mt 2, nu 1.)
 
-```{r, echo=FALSE, cache=TRUE}
-plotdiscordance(profile)+geom_vline(xintercept = 45)
+```{r echo=FALSE, cache=TRUE}
+plotdiscordance(profile) +  geom_vline(xintercept = 45)
 ```
 
 ### Very low female migration rate
@@ -104,7 +105,7 @@ plotdiscordance(profile)+geom_vline(xintercept = 45)
 Now we look at the results of strict swamping with almost no female migration ($m=10^{-9}$). NB: The software does not allow for $m=0$ so I picked something very small instead.
 
 ```{r, cache=TRUE}
-profile <- Fintrogprofile("Simulations/StrictSwamping/StrictSwamping_1/IntrogProfile.txt")
+profile <- Fintrogprofile("Simulations/StrictSwamping2/StrictSwamping_1/IntrogProfile.txt")
 meltedleadnu <- Fmeltprofile(profile)
 plotprofile(meltedleadnu)+geom_vline(xintercept = 45)
 ```
@@ -117,26 +118,29 @@ The corresponding discordance:
 plotdiscordance(profile)+geom_vline(xintercept = 45)
 ```
 
-There is massive introgression discordance in species 2, with a final discordance of `r mean(profile$MeanA[profile$Year>3000 & profile$x>47]-profile$LocusMt[profile$Year>3000 & profile$x>47])`.
+There is massive introgression discordance in species 2, with a final discordance of `r mean(profile$MeanA[profile$Year>5000 & profile$x>47]-profile$LocusMt[profile$Year>5000 & profile$x>47])`. Across runs, the final discordance range is: `r profile %>% filter(Year==6000, x>47) %>%  group_by(Run) %>% summarise(mean=mean(MeanA)) %>% select(mean) %>% range`
 
 ## Results across female migration values
 
 We now look at the final introgression discordance in species 2.
 
 ```{r, cache=TRUE}
-discordance <- sapply(1:9,
-function(i){
-  habitat2 <- Fintrogprofile(paste0("Simulations/StrictSwamping/StrictSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
+discordance <-  map(.x = 1:9, .f = function(i){
+  habitat2 <- Fintrogprofile(paste0("Simulations/StrictSwamping2/StrictSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
   habitat2 <- habitat2 %>% filter(Year==max(Year))
-  mean(habitat2$MeanA - habitat2$LocusMt)
-})
-dat <- data.frame(discordance, female_migration=10^-(9:1))
-ggplot(dat, aes(x=female_migration, y=discordance)) + 
+  data.frame(i=i, mf = 10^-(10-i),
+             discx= habitat2$MeanA - habitat2$LocusMt, Run=habitat2$Run) %>% 
+    group_by(Run, mf) %>% summarise(discordance=mean(discx))
+}) %>% reduce(bind_rows)
+
+ggplot(discordance, aes(x=mf, y=discordance)) + 
   geom_point() +
   scale_x_log10()  +
   geom_hline(yintercept = 0.9, lty=2)+ geom_smooth(se=FALSE) + theme_bw()
 
 ```
+
+*NB: I messed up something for $mf=10^-3$ and got a single replicate. Will fix that later.*
 
 Conclusion: when female migration rates are high there is very little discordance, and only for a short time period, but discordance is massive and long lasting when female migration rates are very low (here $m \leq 10^{-4}$).
 
@@ -182,7 +186,7 @@ discordance <- map(.x = 1:9, .f = function(i){
 }) %>% reduce(bind_rows)
 
 
-ggplot(discordance, aes(x=mf, y=disc)) + geom_point() + scale_x_log10() +
+ggplot(discordance, aes(x=mf, y=discordance)) + geom_point() + scale_x_log10() +
   ylim(min(discordance),1) + geom_hline(yintercept = 0.9, lty=2) + geom_smooth(se=FALSE) + theme_bw()
 
 ```
@@ -292,13 +296,18 @@ meltsmallnuclear <- Fmeltprofile(nuclearsmall)
 
 ## {-} {.tabset}
 ### Discordance
-```{r}
+```{r, cache=TRUE}
 plotdiscordance(nuclearsmall)+ geom_vline(xintercept = 20)
 ```
 
-### Introgression profile
-```{r}
-plotprofile(meltsmallnuclear)+ geom_vline(xintercept = 20)
+### Introgression profile 
+```{r, cache=TRUE}
+#plotprofile(meltsmallnuclear)+ geom_vline(xintercept = 20) Problem with GAM
+
+  ggplot(meltsmallnuclear, aes(x=x, y=invaderproportion, color=marker)) + 
+  geom_point(alpha=0.3) + ylim(0,1)+ geom_smooth(se = FALSE, method = "loess")+ theme_bw() + scale_colour_viridis_d(labels=c('Local adaptation', 'Mitochondrial', 'Average autosomal') )+
+  labs(title = 'Year: {frame_time}')+ transition_time(Year) + geom_vline(xintercept = 20) +
+  ease_aes('linear') 
 ```
 
 ## {-}
@@ -334,7 +343,7 @@ summaryjoinedsmall <- joinedsmall %>% filter(x>25, Year>5000) %>%
 Apparent massive mito-nuclear discordance at the level 0.9 occurs in `r sum(summaryjoinedsmall$MDMI_90, na.rm=TRUE)` runs out of `r nrow(summaryjoinedsmall)` when we combine simulations (note that the runs of the two types of simulations are paired at random, with mitochondrial simulations being limiting here).
 
 
-Instead, let's tryh all combinations of runs :
+Instead, let's try all combinations of runs :
 ```{r}
 joinedsmall_allcomb <- inner_join(x = nuclearsmall %>% select(Run, Year, x, MeanA, LocusAdapt0),
                          y=smallmitoch %>% select(Run, Year, x, LocusMt), by=c("x", "Year"))
@@ -346,27 +355,13 @@ summarydiscallcomb <- joinedsmall_allcomb %>% filter(x>25, Year>5000) %>%
   group_by(Run) %>%
   summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9)
 
-mean(summarydiscallcomb$MDMI_90, na.rm = TRUE)
-ggplot(summarydiscallcomb, aes(x=m_disc, fill=MDMI_90)) + geom_histogram()
 ```
 
 Only `r round(mean(summarydiscallcomb$MDMI_90, na.rm = TRUE)*100, 2)`% of combinations give MDMI at the level 0.9, but `r round(mean(summarydiscallcomb$m_disc>=0.8, na.rm = TRUE)*100, 2)`% of combinations give MDMI at the level 0.8.
 
 Here is the distribution of discordance:
 
-```{r}
-summarymitoch$type <- "mitoch"
-summarynuclearsmall$type <- "nuclear"
-summarydiscallcomb$type <- "combined"
-summariesmerge <- rbind(summarymitoch, summarynuclearsmall, summarydiscallcomb)
-summariesmerge$real <- summariesmerge$type!="combined"
-
-library(ggbeeswarm)
-geom_beewa
-ggplot(summariesmerge, aes(x=type, y=m_disc, fill=real)) +
-  geom_violin() + geom_point() + geom_hline(yintercept = c(0.8,0.9), lty=c(2,1)) +
-  theme_bw() + labs(y="Mito-nuclear discordance", x="calculation type")
-
+```{r}ggplot(summarydiscallcomb, aes(x=m_disc, fill=MDMI_90)) + geom_histogram()
 ```
 
 
