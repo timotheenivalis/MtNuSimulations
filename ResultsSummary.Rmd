@@ -1,7 +1,7 @@
 ---
-title: "Results summary"
+title: "Early results summary"
 author: "Timothee Bonnet"
-date: "06/08/2021"
+date: "16/08/2021"
 output: 
   html_document:
     toc: true
@@ -69,7 +69,7 @@ Seixas & al. 2018 used simulations in SPLATCHE2 to show that strong mito-nuclear
 
 Our proximal goal is to confirm that Seixas & al. 2018 results are incorrect and to warn other researchers about the shortcomings in their analyses.
 
-Our overarching goal is to once more assess whether sex-biased dispersal can generate a massive mito-nuclear discordance, in particular in the context of biological invasion. Because it was entirely lacking from our previous work, we want to assess the particular scenario of strict \`\`nuclear-swamping'' (that is, a constant flow of nuclear genes from an infinite source into a finite receiving population, without any gene flow in the other direction nor any mitochondrial gene flow), which we expect can easily produce massive mito-nuclear discordance. We will relax the nuclear-swamping scenario to assess how strict the swamping scenario needs to be in order to produce massive mito-nuclear discordance.
+Our overarching goal is to once more assess whether neutral processes can generate a massive mito-nuclear discordance, in particular in the context of biological invasion. Because it was entirely lacking from our previous work, we want to assess the particular scenario of strict \`\`nuclear-swamping'' (that is, a constant flow of nuclear genes from an infinite source into a finite receiving population, without any gene flow in the other direction nor any mitochondrial gene flow), which we expect can easily produce massive mito-nuclear discordance. We will relax the nuclear-swamping scenario to assess how strict the swamping scenario needs to be in order to produce massive mito-nuclear discordance.
 
 We start with strict swamping simulations, which are most intuitive.
 
@@ -77,13 +77,15 @@ We start with strict swamping simulations, which are most intuitive.
 
 # Strict Swamping
 
-We simulate a large grid with most of the space (90%) covered by species 1 and a small area (10%) covered by species 2. The grid is static. Taxon 1 can enter habitat 2 although it has reduced fitness there (0.9), but species 2 cannot enter habitat 1 since it has zero fitness there. Note that we define species based on the genotype at on local adaptation locus. Male migration rate is fixed at 0.1. We vary female migration rate between 0.1 and $10^{-9}$. We monitor introgression every 100 generations for 6000 generations after the begining of secondary contact (the allopatry period lasts for 80000 generations).
+We simulate a large grid ($50\times10$ demes) with most of the space (90%) covered by species 1 and a small area (10%) covered by species 2. The grid is static. Taxon 1 can enter habitat 2 although it has reduced fitness there (0.9), but species 2 cannot enter habitat 1 since it has zero fitness there. As in our previous work we define species based on the genotype at one local adaptation locus. Male migration rate is fixed at 0.1. We vary female migration rate between 0.1 and $10^{-9}$. Here and in all the work presented in this document we use a geometric distribution (with $g=0.1$) to generate isolation by distance, a maximal dispersion distance of 5, and reflecting grid boundaries, as in our previous work.
+
+We monitor introgression every 100 generations for 6000 generations after the beginning of secondary contact (the allopatry period lasts for 80000 generations).
 
 ## In depth visualisation of two extreme cases
 
 ### High female migration rate
 
-We first check what happens with high female migration rate ($m=10^{-1}$).
+We first check what happens with high female migration rate ($m=10^{-1}$, so no sex-biased dispersal).
 
 ```{r, echo=FALSE, cache=TRUE}
 profile <- Fintrogprofile("Simulations/StrictSwamping2/StrictSwamping_9/IntrogProfile.txt")
@@ -91,7 +93,7 @@ meltedleadnu <- Fmeltprofile(profile)
 plotprofile(meltedleadnu)+geom_vline(xintercept = 45)
 ```
 
-*NB: the lines are the default GAM from ggplot (I think thin plates?). They don't mean much but I found they were sometimes easy to visualise overall patterns when simulation replicates are very variable.*
+*NB: the lines are the default GAM from ggplot (I think thin plates?). They don't mean much but I found they were sometimes useful to visualise overall patterns when simulation replicates are very variable. Also, we observe the system every 100 "years" (generations), but the animation interpolates years between, hence the year counter going through all integer values.*
 
 Habitat 1 is left of $x=45$, habitat 2 starts at $x=45$. Species 2 local adaptation marker persists for the duration of the simulation, but in most cases species 2 rapidly capture species 1 mitochondrial lineage and the autosomal introgression into species 2 is massive (towards the end average around 98% of autosomal gene copies in species 2 are of species 1 origin). In those cases there is only very little discordance of introgression into species 2 (a little bit, peaking at around 0.3, in a transient way for the first 900 generations of the secondary contact).
 However, in 2 simulation replicates the mitochondrial capture does not happen and there is massive discordance (above x=45, species 2 has mt 2, nu 1; for x between 30 and 45, species 1 has mt 2, nu 1.)
@@ -207,7 +209,9 @@ I put that here for the sake of completeness and to give you a chance to tell me
 
 I tried holding male migration rate constant at $m=0.1$ in both species and testing all 9 combinations of species-specific female migration rates among $m={0.1, 10^{-4}, 10^{-9}}$, or reversely, keeping females at $m=0.1$ and testing all 9 combinations of species-specific male migration rates among $m={0.1, 10^{-4}, 10^{-9}}$.
 
-The species with higher average $m$ invades the grid while the other species goes extinct. If females of both species don't move there is a storng mitochondrial cline, but in all cases the average autosomal introgression is around 50%, hence an expected discordance of 50%.
+The species with higher average $m$ invades the grid while the other species goes extinct. If females of both species don't move there is a strong mitochondrial cline, but in all cases the average autosomal introgression is around 50%, hence an expected discordance of 50%.
+
+I think the scenarios do not match at all SPLATCHE interbreeding asymmetry because the asymmetry is transient as one species goes extinct quickly if it average migration rate is lower than that of the other species.
 
 # Try to reproduce Seixas et al.
 
@@ -215,10 +219,11 @@ We need:
 
 * Biological invasion
 * Initial difference in gene pool sizes between the two species (twice as many invaders than residents, so the grid should be split at 2/3)
-* Overall (not sure whether that means on average, or for both species), female migration rate of 0.005 and a male migration rate of 0.035
 * Some control of admixture asymmetry to produce "mitochondrial simulations" and "autosomal simulations"
+* An average migration rate of 0.02. When considering "mitochondrial simulations", a female migration rate of 0.005 and a male migration rate of 0.035, when considering "autosomal simulations", 0.02 in both sexes.
 
-For that last point we mentioned using species-sex-specific migration rates. I do not see how to get close to Seixas et al.'s simulations that way: once habitat 2 disappears and is replaced by habitat 1, species 1 will invade the area and be in contact with species 2 in all invaded demes until species 2 disappears. As long as invasion occurs (and if it does not occur there is nothing interesting to see) lots of admixture will occur whatever the migration rates of each species-sex.
+
+Regarding admixture asymmetry we mentioned using species-sex-specific migration rates. I do not see how to get close to Seixas et al.'s simulations that way: once habitat 2 disappears and is replaced by habitat 1, species 1 will invade the area and be in contact with species 2 in all invaded demes until species 2 disappears. As long as invasion occurs (and if it does not occur there is nothing interesting to see) lots of admixture will occur whatever the migration rates of each species-sex.
 
 Therefore, I tried using again the mating asymmetry matrix.
 
@@ -242,23 +247,25 @@ $$
   \text{Mitochondrial} & 0.035 &  0.005 & 0.025 & 0.001 \\
 \end{array}
 $$
-
+I used a grid of $30\times10$ demes, with the initial contact zone at $x=20$. That grid size lets me run the simulations on a single cluster node, without paying a penalty due to RAM demand.
 
 ## Rethinking MDMI threshold
 
-What is a good MDMI level here? What is a good null scenario to use to test whether the mechanisms proposed in Seixas et al. do anything at all? 
-I am thinking that the biological invasion with unequal species population sizes is a necessary context. Their point is more that sex-specific migration rates and asymmetrical mating generate MDMI in that context.
-Therefore, the "autosomal simulations" are a good null in themselves: migration rates are uniform and mating is symmetrical.
 
-## "Mitochondrial simulations" results
+I have displayed a discordance of 0.9 as a threshold for massively discordance introgression (MDMI) on graphs. But I wonder if we should re-consider how to define MDMI, whether we need an absolute threshold, how to deal with transient or local strong discordance... I don't have answers.
+
+What is a good MDMI level here? What is a good null scenario to use to test whether the mechanisms proposed in Seixas et al. do something? 
+I am thinking that the biological invasion with unequal species population sizes is a necessary context. Their point is more that sex-specific migration rates and asymmetrical mating generate MDMI in that context.
+Therefore, the "autosomal simulations" (see below) may be a good null in themselves: migration rates are uniform and mating is symmetrical.
+
+## "Mitochondrial simulations" results {.tabset}
+
 
 
 ```{r}
 smallmitoch <- Fintrogprofile(paste0("Simulations/Mitoch/Mitoch_1/IntrogProfile.txt"))
 meltsmallmitoch <- Fmeltprofile(smallmitoch)
 ```
-
-## {-} {.tabset}
 
 ### Discordance
 ```{r}
@@ -270,7 +277,7 @@ plotdiscordance(smallmitoch) + geom_vline(xintercept = 20)
 plotprofile(meltsmallmitoch) + geom_vline(xintercept = 20)
 ```
 
-## {-}
+##  {.unnumbered}
 
 ```{r}
 summarymitoch <- smallmitoch %>% filter(x>25, Year>5000) %>%
@@ -281,7 +288,7 @@ summarymitoch <- smallmitoch %>% filter(x>25, Year>5000) %>%
 
 The average discordance at the end of the simulation, for $x>25$, is `r round(mean(summarymitoch$m_disc), 3)` with a range of `r round(range(summarymitoch$m_disc), 3)`.
 
-## "Autosomal" simulations
+## "Autosomal" simulations {.tabset}
 
 
 ```{r}
@@ -294,7 +301,6 @@ nuclearsmall <-rbind(nuclearsmall1, nuclearsmall4, nuclearsmall5)
 meltsmallnuclear <- Fmeltprofile(nuclearsmall)
 ```
 
-## {-} {.tabset}
 ### Discordance
 ```{r, cache=TRUE}
 plotdiscordance(nuclearsmall)+ geom_vline(xintercept = 20)
@@ -310,7 +316,7 @@ plotdiscordance(nuclearsmall)+ geom_vline(xintercept = 20)
   ease_aes('linear') 
 ```
 
-## {-}
+##  {.unnumbered}
 
 ```{r}
 summarynuclearsmall <- nuclearsmall %>% filter(x>25, Year>5000) %>%
@@ -361,7 +367,8 @@ Only `r round(mean(summarydiscallcomb$MDMI_90, na.rm = TRUE)*100, 2)`% of combin
 
 Here is the distribution of discordance:
 
-```{r}ggplot(summarydiscallcomb, aes(x=m_disc, fill=MDMI_90)) + geom_histogram()
+```{r}
+ggplot(summarydiscallcomb, aes(x=m_disc, fill=MDMI_90)) + geom_histogram()
 ```
 
 
