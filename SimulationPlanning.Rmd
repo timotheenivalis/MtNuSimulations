@@ -75,6 +75,19 @@ for (i in 1:length(mFemale))
 }
 
 
+for (i in 1:length(mFemale))
+{
+  init_folder(homedir = "Simulations/StrictSwamping3", focaldir = paste0("StrictSwamping_", i))
+  write_full_param(homedir = "Simulations/StrictSwamping3", focaldir = paste0("StrictSwamping_", i),
+                   demesize = 20, dimx = 50, dimy = 10, Xlimit = 45,
+                   generationnumber = 6000, AllopatryLast = 80000, DemeSamplingRatio = 1.0, IndMeanSample = 100,
+                   dispmax = 5,  mFemale =  mFemale[[i]], Swamping = "true", RunNumber = 100, LowHybridBound=50,
+                   WritePeriod=100)
+  qsub_gadi(jobdir =paste0("Simulations/StrictSwamping3/StrictSwamping_",i),
+            gsubfile = paste0("gadi_StrictSwamping_",i), mem = 16)
+}
+
+
 ```
 
 

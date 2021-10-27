@@ -127,13 +127,31 @@ There is massive introgression discordance in species 2, with a final discordanc
 We now look at the final introgression discordance in species 2.
 
 ```{r, cache=TRUE}
-discordance <-  map(.x = 1:9, .f = function(i){
+discordance1 <-  map(.x = 1:9, .f = function(i){
+  habitat2 <- Fintrogprofile(paste0("Simulations/StrictSwamping/StrictSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
+  habitat2 <- habitat2 %>% filter(Year==max(Year))
+  data.frame(i=i, mf = 10^-(10-i),
+             discx= habitat2$MeanA - habitat2$LocusMt, Run=habitat2$Run) %>% 
+    group_by(Run, mf) %>% summarise(discordance=mean(discx))
+}) %>% reduce(bind_rows)
+
+discordance2 <-  map(.x = 1:9, .f = function(i){
   habitat2 <- Fintrogprofile(paste0("Simulations/StrictSwamping2/StrictSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
   habitat2 <- habitat2 %>% filter(Year==max(Year))
   data.frame(i=i, mf = 10^-(10-i),
              discx= habitat2$MeanA - habitat2$LocusMt, Run=habitat2$Run) %>% 
     group_by(Run, mf) %>% summarise(discordance=mean(discx))
 }) %>% reduce(bind_rows)
+
+discordance3 <-  map(.x = 1:9, .f = function(i){
+  habitat2 <- Fintrogprofile(paste0("Simulations/StrictSwamping3/StrictSwamping_",i,"/IntrogProfile.txt"), xlim = 46)
+  habitat2 <- habitat2 %>% filter(Year==max(Year))
+  data.frame(i=i, mf = 10^-(10-i),
+             discx= habitat2$MeanA - habitat2$LocusMt, Run=habitat2$Run) %>% 
+    group_by(Run, mf) %>% summarise(discordance=mean(discx))
+}) %>% reduce(bind_rows)
+
+discordance <- bind_rows(discordance1, discordance2, discordance3)
 
 ggplot(discordance, aes(x=mf, y=discordance)) + 
   geom_point() +
@@ -283,7 +301,7 @@ plotprofile(meltsmallmitoch) + geom_vline(xintercept = 20)
 summarymitoch <- smallmitoch %>% filter(x>25, Year>5000) %>%
   mutate(discordance = MeanA - LocusMt) %>% 
   group_by(Run) %>%
-  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9) 
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9, mma=mean(MeanA)) 
 ```
 
 The average discordance at the end of the simulation, for $x>25$, is `r round(mean(summarymitoch$m_disc), 3)` with a range of `r round(range(summarymitoch$m_disc), 3)`.
@@ -402,7 +420,7 @@ nounequalsize <- Fintrogprofile("Simulations/Mitoch_relax/Mitoch_relax_1/IntrogP
 summaryuneq <- nounequalsize %>% filter(x>25, Year>5000) %>%
   mutate(discordance = MeanA - LocusMt) %>% 
   group_by(Run) %>%
-  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9)
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9, mma = mean(MeanA))
 
 nosexbias <- Fintrogprofile("Simulations/Mitoch_relax/Mitoch_relax_2/IntrogProfile.txt")
 summarynosexb <- nosexbias %>% filter(x>25, Year>5000) %>%
@@ -414,7 +432,7 @@ nomatingas <- Fintrogprofile("Simulations/Mitoch_relax/Mitoch_relax_3/IntrogProf
 summarynomatingas <- nomatingas %>% filter(x>25, Year>5000) %>%
   mutate(discordance = MeanA - LocusMt) %>% 
   group_by(Run) %>%
-  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9)
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9, mma = mean(MeanA))
 ```
 
 
@@ -453,3 +471,30 @@ The second point is correct. We had not presented results from asymmetric gene f
 
 So far our new simulations still suggest that strong discordance is very hard to obtain without selection. However, the value of discordance reported in the hare system (I am not quite sure but it seems to peak around 80% on figure 5b?) are quite possible without selection in our new simulations. In particular, a larger gene pool of the invading species may be driving the discordance.
 
+#
+```{r}
+summarymitoch <- smallmitoch %>% filter(x>25, Year>5800) %>%
+  mutate(discordance = MeanA - LocusMt) %>% 
+  group_by(Run) %>%
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9, mma=mean(MeanA)) 
+mean(summarymitoch$m_disc)
+summarymitoch <- smallmitoch %>% filter(x>25, Year==3000) %>%
+  mutate(discordance = MeanA - LocusMt) %>% 
+  group_by(Run) %>%
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9, mma=mean(MeanA)) 
+mean(summarymitoch$m_disc)
+
+```
+
+
+```{r}
+ggplot(smallmitoch[(smallmitoch$Year %in% c(0, 1000, 2000, 3000, 4000, 5000, 6000)) & smallmitoch$x>20,], aes(x=x, y=MeanA - LocusMt)) + 
+  geom_point() + geom_smooth() + facet_wrap(~Year) + geom_hline(yintercept = 0.66)
+
+^summarymitoch <-smallmitoch %>% filter(x<25, Year>5000) %>%
+  mutate(discordance = MeanA - LocusMt) %>% 
+  group_by(Run) %>%
+  summarise(m_disc = mean(discordance, na.rm = TRUE), MDMI_90 = m_disc>=0.9, mma=mean(MeanA)) 
+mean(summarymitoch$m_disc)
+
+```
